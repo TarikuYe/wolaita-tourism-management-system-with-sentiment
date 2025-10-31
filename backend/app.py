@@ -25,6 +25,11 @@ except Exception as e:
     vectorizer = None
 # ==============================================================
 
+# in backend/app.py
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"}), 200
+
 @app.route('/analyze', methods=['POST'])
 def analyze_sentiment():
     if not model or not vectorizer:
