@@ -1,0 +1,12 @@
+# Firebase
+firebase-admin
+firebase-functions
+
+# ML Model Dependencies
+# Add your model's dependencies here
+# For example:
+# tensorflow
+# scikit-learn
+scikit-learn
+joblib
+numpy
