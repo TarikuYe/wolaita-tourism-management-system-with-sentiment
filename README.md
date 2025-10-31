@@ -79,8 +79,7 @@ Project212/
 │   │   └── useSentimentAnalysis.ts
 │   └── config/
 │       └── firebase.ts
-├── render.yaml             # Render deployment config
-├── Procfile                # Gunicorn config
+├── wsgi.py                 # PythonAnywhere WSGI config
 └── vite.config.ts          # Vite proxy config
 ```
 
@@ -132,16 +131,33 @@ Project212/
 
 ## 🌐 Deployment
 
-### Sentiment API (Render)
-1. Connect GitHub repo to Render
-2. Render auto-detects `render.yaml`
-3. Deploys Flask API at `https://your-api.onrender.com`
+### Sentiment API (PythonAnywhere)
+1. **Sign up at** [PythonAnywhere.com](https://www.pythonanywhere.com) (free tier available)
+2. **Upload your files:**
+   - Go to Files tab
+   - Upload your entire project or use `git clone` in Bash console
+   - Ensure `backend/` folder with `app.py` and `models/` are uploaded
+3. **Install dependencies in Bash console:**
+   ```bash
+   cd ~/mysite
+   pip3.11 install --user -r backend/requirements.txt
+   ```
+4. **Configure WSGI file:**
+   - Go to Web tab → Add a new web app → Flask → Python 3.11
+   - Edit the WSGI file (e.g., `/var/www/YOUR_USERNAME_pythonanywhere_com_wsgi.py`)
+   - Replace with the content from `wsgi.py` (update YOUR_USERNAME)
+   - Or point it to: `/home/YOUR_USERNAME/mysite/wsgi.py`
+5. **Set Source code and Working directory:**
+   - Source code: `/home/YOUR_USERNAME/mysite`
+   - Working directory: `/home/YOUR_USERNAME/mysite/backend`
+6. **Reload your web app**
+7. **Get your URL:** `https://YOUR_USERNAME.pythonanywhere.com`
 
-### Node Backend (Render)
-1. Create new Render web service
-2. Set build: `npm install --prefix backend`
-3. Set start: `node backend/app.js`
-4. Add environment variables
+### Node Backend (Still use Render/Vercel/Railway)
+- Use Render, Vercel, Railway, or similar for Node.js backend
+- Set build: `npm install --prefix backend`
+- Set start: `node backend/app.js`
+- Add environment variables
 
 ### Frontend (Vercel)
 1. Import repo to Vercel
@@ -156,7 +172,7 @@ Project212/
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
-VITE_SENTIMENT_API_URL=     # Production: Render URL
+VITE_SENTIMENT_API_URL=     # Production: PythonAnywhere URL (e.g., https://username.pythonanywhere.com/analyze)
 ```
 
 ### Backend (backend/.env)
@@ -202,8 +218,9 @@ Tariku Negesa
 
 - Wolaita tourism community
 - Firebase
-- Render & Vercel
+- PythonAnywhere & Vercel
 - Chapa Payment Gateway
 
 "# project212-wolaita-tourism" 
 "# project212-wolaita-tourism" 
+"# project212-wolaita-tourism2" 
