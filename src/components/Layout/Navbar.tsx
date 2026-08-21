@@ -63,7 +63,6 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <Mountain className="h-10 w-10 text-amber-600" />
-              {/* <img src="/images/logos/ologo.png" alt="Wolaita Tours Logo" className="h-24 w-34" /> */}
               <span className="text-xl font-bold text-gray-900">
                 {language === 'en' ? 'Wolaita Tours' : 'የወላይታ ጉዞዎች'}
               </span>
@@ -75,7 +74,7 @@ export const Navbar: React.FC = () => {
               link.submenu ? (
                 <div
                   className="relative"
-                  key={link.label}
+                  key={typeof link.label === 'string' ? link.label : String(link.label)}
                   onMouseEnter={() => setShowCultureDropdown(true)}
                   onMouseLeave={() => setShowCultureDropdown(false)}
                 >
@@ -216,7 +215,7 @@ export const Navbar: React.FC = () => {
     >
       {navLinks.map((link) =>
         link.submenu ? (
-          <div key={link.label} className="space-y-2">
+          <div key={typeof link.label === 'string' ? link.label : String(link.label)} className="space-y-2">
             <span className="block text-gray-800 font-semibold">{link.label}</span>
             <div className="ml-4 space-y-1">
               {link.submenu.map((sublink) => (
