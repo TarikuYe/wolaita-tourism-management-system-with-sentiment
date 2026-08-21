@@ -79,7 +79,6 @@ Project212/
 │   │   └── useSentimentAnalysis.ts
 │   └── config/
 │       └── firebase.ts
-├── wsgi.py                 # PythonAnywhere WSGI config
 └── vite.config.ts          # Vite proxy config
 ```
 
@@ -145,8 +144,13 @@ Project212/
 4. **Configure WSGI file:**
    - Go to Web tab → Add a new web app → Flask → Python 3.11
    - Edit the WSGI file (e.g., `/var/www/YOUR_USERNAME_pythonanywhere_com_wsgi.py`)
-   - Replace with the content from `wsgi.py` (update YOUR_USERNAME)
-   - Or point it to: `/home/YOUR_USERNAME/mysite/wsgi.py`
+   - Add the application loader:
+     ```python
+     import sys, os
+     sys.path.insert(0, '/home/YOUR_USERNAME/mysite/backend')
+     os.chdir('/home/YOUR_USERNAME/mysite/backend')
+     from app import app as application
+     ```
 5. **Set Source code and Working directory:**
    - Source code: `/home/YOUR_USERNAME/mysite`
    - Working directory: `/home/YOUR_USERNAME/mysite/backend`
@@ -220,7 +224,3 @@ Tariku Negesa
 - Firebase
 - PythonAnywhere & Vercel
 - Chapa Payment Gateway
-
-"# project212-wolaita-tourism" 
-"# project212-wolaita-tourism" 
-"# project212-wolaita-tourism2" 
