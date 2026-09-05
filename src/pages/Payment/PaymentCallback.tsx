@@ -86,10 +86,10 @@ export const PaymentCallback = () => {
           const bookingId = data.data?.meta?.booking_id || data.meta?.booking_id;
           let finalBookingId = bookingId;
           
-          if (!finalBookingId) {
+          if (!finalBookingId && paymentSnap.exists()) {
             // Try to find booking by payment record
             const paymentData = paymentSnap.data();
-            finalBookingId = paymentData.bookingId;
+            finalBookingId = paymentData?.bookingId;
           }
           
           if (finalBookingId) {
