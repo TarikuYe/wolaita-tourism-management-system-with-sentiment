@@ -188,6 +188,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const lastName = nameParts.slice(1).join(' ') || 'User';
       const phoneNumber = ChapaService.formatPhoneNumber(data.phone_number);
 
+      // Save last transaction reference in storage for recovery
+      sessionStorage.setItem('last_chapa_tx_ref', txRef);
+      localStorage.setItem('last_chapa_tx_ref', txRef);
+
       const paymentData: ChapaPaymentRequest = {
         amount: getAmount(),
         currency: data.currency,
@@ -197,7 +201,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         phone_number: phoneNumber,
         tx_ref: txRef,
         callback_url: `${window.location.origin}/payment/callback`,
-        return_url: `${window.location.origin}/payment/success`,
+        return_url: `${window.location.origin}/payment/success?tx_ref=${txRef}&status=success`,
         description: `Payment for ${booking.tourName} - ${booking.participants} participant(s)`,
         meta: {
           booking_id: booking.id,

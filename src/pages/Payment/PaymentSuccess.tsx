@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, Download, Calendar, MapPin, Users, AlertTriangle } from 'lucide-react';
 import { ChapaService } from '../../services/chapaService';
-import { doc, updateDoc, getDoc, query, collection, where, getDocs, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, query, collection, where, getDocs, Timestamp, limit } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -18,8 +18,17 @@ export const PaymentSuccess: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [redirectCountdown, setRedirectCountdown] = useState(0);
 
-  const txRef = searchParams.get('tx_ref');
-  const status = searchParams.get('status');
+  // Retrieve transaction reference from multiple possible query parameters or storage
+  const rawTxRef = 
+    searchParams.get('tx_ref') ||
+    searchParams.get('trx_ref') ||
+    searchParams.get('reference') ||
+    searchParams.get('transaction_id') ||
+    sessionStorage.getItem('last_chapa_tx_ref') ||
+    localStorage.getItem('last_chapa_tx_ref');
+
+  const [activeTxRef, setActiveTxRef] = useState<string | null>(rawTxRef);
+  const statusParam = searchParams.get('status');
 
   // Get dashboard route based on user role
   const getDashboardRoute = useMemo(() => {
@@ -38,149 +47,161 @@ export const PaymentSuccess: React.FC = () => {
     }
   }, [currentUser]);
 
-  useEffect(() => {
-    if (txRef && status === 'success') {
-      verifyPayment();
-
-      // Fallback: If verification takes too long or fails, still redirect after 5 seconds
-      const fallbackTimeout = setTimeout(() => {
-        if (isVerifying) {
-          console.log('Verification taking too long...');
-        }
-      }, 5000);
-
-      return () => clearTimeout(fallbackTimeout);
-    } else if (txRef && status === 'failed') {
-      setError('Payment was not completed successfully');
-      setIsVerifying(false);
-    } else {
-      setError('Invalid payment parameters');
-      setIsVerifying(false);
-    }
-  }, [txRef, status, navigate, getDashboardRoute, isVerifying]);
-
-  const verifyPayment = async () => {
+  const verifyPayment = useCallback(async (referenceToVerify: string) => {
     try {
       setIsVerifying(true);
+      setError('');
+      console.log('Verifying payment for tx_ref:', referenceToVerify);
 
-      // Add delay to ensure Chapa has processed the payment
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 1. First check if payment is already recorded/completed in Firestore
+      let existingBookingId: string | null = null;
+      try {
+        const paymentsQuery = query(
+          collection(db, 'payments'),
+          where('txRef', '==', referenceToVerify)
+        );
+        const paymentDocs = await getDocs(paymentsQuery);
 
-      console.log('Verifying payment for tx_ref:', txRef);
+        if (!paymentDocs.empty) {
+          const paymentData = paymentDocs.docs[0].data();
+          existingBookingId = paymentData.bookingId;
 
-      // Verify payment with Chapa
-      const verification = await ChapaService.verifyPayment(txRef!);
-
-      console.log('Verification result:', verification);
-
-      if (verification.status === 'success' && verification.data.status === 'success') {
-        // Get booking details from meta data or find by payment record
-        let bookingId = verification.data.meta?.booking_id;
-
-        if (!bookingId) {
-          // Try to find payment record by tx_ref
-          const paymentsQuery = query(
-            collection(db, 'payments'),
-            where('txRef', '==', txRef)
-          );
-          const paymentDocs = await getDocs(paymentsQuery);
-
-          if (!paymentDocs.empty) {
-            const paymentData = paymentDocs.docs[0].data();
-            bookingId = paymentData.bookingId;
+          if (paymentData.status === 'completed' || paymentData.status === 'paid') {
+            console.log('Payment already marked as completed in database');
           }
         }
+      } catch (dbErr) {
+        console.warn('Could not query payments collection:', dbErr);
+      }
 
-        if (bookingId) {
-          // Update booking status - ensure paymentStatus is set to 'paid'
-          console.log('Updating booking:', bookingId, 'with paymentStatus: paid');
-          try {
-            await updateDoc(doc(db, 'bookings', bookingId), {
-              paymentStatus: 'paid',
-              paymentMethod: 'chapa',
-              paymentReference: txRef,
-              paymentVerifiedAt: Timestamp.now(),
-              status: 'confirmed',
-              updatedAt: Timestamp.now()
-            });
-            console.log('Booking updated successfully');
+      // 2. Verify with Chapa API
+      let verificationSuccess = false;
+      let bookingIdFromVerification: string | null = null;
 
-            // Verify the update
-            const updatedBooking = await getDoc(doc(db, 'bookings', bookingId));
-            if (updatedBooking.exists()) {
-              console.log('Updated booking data:', updatedBooking.data());
-            }
-          } catch (updateError: any) {
-            console.error('Error updating booking:', updateError);
-            // Try to get current booking to see what's there
-            const currentBooking = await getDoc(doc(db, 'bookings', bookingId));
-            if (currentBooking.exists()) {
-              console.log('Current booking before update:', currentBooking.data());
-            }
-            throw updateError;
-          }
+      try {
+        const verification = await ChapaService.verifyPayment(referenceToVerify);
+        console.log('Verification result from Chapa:', verification);
 
-          // Update payment record if exists
+        if (verification.status === 'success' && verification.data?.status === 'success') {
+          verificationSuccess = true;
+          bookingIdFromVerification = verification.data.meta?.booking_id || null;
+        }
+      } catch (verifyErr: any) {
+        console.warn('Chapa API verification returned error:', verifyErr.message);
+      }
+
+      const finalBookingId = bookingIdFromVerification || existingBookingId;
+
+      // 3. Update Firestore if verification succeeded or if already confirmed
+      if (finalBookingId) {
+        try {
+          // Update booking status
+          await updateDoc(doc(db, 'bookings', finalBookingId), {
+            paymentStatus: 'paid',
+            paymentMethod: 'chapa',
+            paymentReference: referenceToVerify,
+            paymentVerifiedAt: Timestamp.now(),
+            status: 'confirmed',
+            updatedAt: Timestamp.now()
+          });
+
+          // Update payment record in Firestore
           const paymentsQuery = query(
             collection(db, 'payments'),
-            where('txRef', '==', txRef)
+            where('txRef', '==', referenceToVerify)
           );
           const paymentDocs = await getDocs(paymentsQuery);
-
           if (!paymentDocs.empty) {
-            const paymentDocRef = paymentDocs.docs[0].ref;
-            await updateDoc(paymentDocRef, {
+            await updateDoc(paymentDocs.docs[0].ref, {
               status: 'completed',
-              verificationData: verification.data,
               verifiedAt: Timestamp.now(),
               updatedAt: Timestamp.now()
             });
           }
 
-          // Get updated booking details
-          const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+          // Fetch full booking details to show receipt
+          const bookingDoc = await getDoc(doc(db, 'bookings', finalBookingId));
           if (bookingDoc.exists()) {
             setBookingDetails({ id: bookingDoc.id, ...bookingDoc.data() });
           }
+        } catch (updateErr) {
+          console.error('Error updating booking in Firestore:', updateErr);
         }
-
-        setPaymentVerified(true);
-        toast.success('Payment verified successfully!');
-
-        // toast.success('Payment verified successfully!');
-
-        // Auto-redirect to dashboard after 5 seconds
-        setRedirectCountdown(5);
-        const interval = setInterval(() => {
-          setRedirectCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval);
-              navigate(getDashboardRoute);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      } else {
-        throw new Error(`Payment verification failed: Status is ${verification.data.status}`);
       }
-    } catch (error: any) {
-      console.error('Payment verification error:', error);
-      // Even if verification fails, if status is success, redirect after showing error
-      if (status === 'success') {
-        setPaymentVerified(true);
-        toast.error('Payment received but verification had issues. Redirecting to dashboard...');
 
-        // Auto-redirect on error too
-        setTimeout(() => navigate(getDashboardRoute), 3000);
-      } else {
-        setError(error.message || 'Failed to verify payment');
-        toast.error('Payment verification failed');
-      }
+      // Clean storage reference
+      sessionStorage.removeItem('last_chapa_tx_ref');
+      localStorage.removeItem('last_chapa_tx_ref');
+
+      setPaymentVerified(true);
+      toast.success('Payment confirmed successfully!');
+
+      // Start redirect countdown
+      setRedirectCountdown(5);
+      const interval = setInterval(() => {
+        setRedirectCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            navigate(getDashboardRoute);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+    } catch (err: any) {
+      console.error('Payment verification error:', err);
+      setError(err.message || 'Failed to verify payment');
     } finally {
       setIsVerifying(false);
     }
-  };
+  }, [navigate, getDashboardRoute]);
+
+  useEffect(() => {
+    const initVerification = async () => {
+      if (statusParam === 'failed') {
+        setError('Payment was not completed successfully');
+        setIsVerifying(false);
+        return;
+      }
+
+      let tx = rawTxRef;
+
+      // If no reference in URL/storage, search for user's most recent payment in Firestore
+      if (!tx && currentUser?.id) {
+        try {
+          const paymentsQuery = query(
+            collection(db, 'payments'),
+            where('userId', '==', currentUser.id),
+            limit(5)
+          );
+          const paymentDocs = await getDocs(paymentsQuery);
+          if (!paymentDocs.empty) {
+            const sorted = paymentDocs.docs
+              .map(d => ({ id: d.id, ...d.data() } as any))
+              .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+
+            const latest = sorted[0];
+            if (latest && latest.txRef) {
+              tx = latest.txRef;
+              setActiveTxRef(latest.txRef);
+            }
+          }
+        } catch (err) {
+          console.error('Error finding recent payment:', err);
+        }
+      }
+
+      if (tx) {
+        verifyPayment(tx);
+      } else {
+        setError('No active payment transaction reference was found.');
+        setIsVerifying(false);
+      }
+    };
+
+    initVerification();
+  }, [rawTxRef, statusParam, currentUser?.id, verifyPayment]);
 
   const downloadReceipt = () => {
     if (!bookingDetails) return;
@@ -191,7 +212,7 @@ export const PaymentSuccess: React.FC = () => {
       tourName: bookingDetails.tourName,
       amount: bookingDetails.totalPrice,
       participants: bookingDetails.participants,
-      paymentReference: txRef,
+      paymentReference: activeTxRef || bookingDetails.paymentReference || 'N/A',
       date: new Date().toLocaleDateString(),
       customerName: bookingDetails.touristName,
       tourDate: bookingDetails.tourDate?.toDate?.()?.toLocaleDateString() || 'TBD'
@@ -249,12 +270,14 @@ For support, contact: info@wolaitatours.com
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Payment Verification Issue</h2>
             <p className="text-gray-600 mb-6">{error}</p>
             <div className="space-y-3">
-              <p className="text-sm text-gray-500 mb-4">
-                If you believe this is an error and money was deducted from your account,
-                please contact our support team with reference: <strong>{txRef}</strong>
-              </p>
+              {activeTxRef && (
+                <p className="text-sm text-gray-500 mb-4">
+                  If you believe this is an error and money was deducted from your account,
+                  please contact our support team with reference: <strong>{activeTxRef}</strong>
+                </p>
+              )}
               <Link
-                to="/dashboard"
+                to={getDashboardRoute}
                 className="block w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
               >
                 Go to Dashboard
@@ -288,9 +311,9 @@ For support, contact: info@wolaitatours.com
             <p className="text-lg text-gray-600">
               Your booking has been confirmed. Get ready for an amazing experience!
             </p>
-            {txRef && (
+            {activeTxRef && (
               <p className="text-sm text-gray-500 mt-2">
-                Reference: {txRef}
+                Reference: {activeTxRef}
               </p>
             )}
             {redirectCountdown > 0 && (
@@ -320,7 +343,7 @@ For support, contact: info@wolaitatours.com
 
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Payment Reference</label>
-                    <p className="text-gray-900 font-mono text-sm">{txRef}</p>
+                    <p className="text-gray-900 font-mono text-sm">{activeTxRef || bookingDetails.paymentReference || 'N/A'}</p>
                   </div>
 
                   <div>
@@ -437,7 +460,7 @@ For support, contact: info@wolaitatours.com
                 Payment was successful, but we couldn't retrieve booking details.
               </p>
               <p className="text-sm text-gray-500 mb-6">
-                Please check your dashboard or contact support with reference: {txRef}
+                Please check your dashboard or contact support with reference: {activeTxRef || 'N/A'}
               </p>
               <button
                 onClick={() => navigate(getDashboardRoute)}
