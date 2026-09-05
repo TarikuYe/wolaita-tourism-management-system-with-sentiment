@@ -16,7 +16,6 @@ export const PaymentSuccess: React.FC = () => {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [error, setError] = useState<string>('');
-  const [redirectCountdown, setRedirectCountdown] = useState(0);
 
   // Retrieve transaction reference from multiple possible query parameters or storage
   const rawTxRef = 
@@ -135,27 +134,13 @@ export const PaymentSuccess: React.FC = () => {
 
       setPaymentVerified(true);
       toast.success('Payment confirmed successfully!');
-
-      // Start redirect countdown
-      setRedirectCountdown(5);
-      const interval = setInterval(() => {
-        setRedirectCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            navigate(getDashboardRoute);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
     } catch (err: any) {
       console.error('Payment verification error:', err);
       setError(err.message || 'Failed to verify payment');
     } finally {
       setIsVerifying(false);
     }
-  }, [navigate, getDashboardRoute]);
+  }, []);
 
   useEffect(() => {
     const initVerification = async () => {
@@ -316,12 +301,6 @@ For support, contact: info@wolaitatours.com
                 Reference: {activeTxRef}
               </p>
             )}
-            {redirectCountdown > 0 && (
-              <p className="text-sm text-amber-600 mt-3 font-medium">
-                Redirecting to dashboard in {redirectCountdown}s...
-              </p>
-            )}
-
           </div>
 
           {/* Booking Details */}

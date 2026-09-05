@@ -131,10 +131,8 @@ export const PaymentCallback = () => {
           setStatus('success');
           toast.success('Payment verified successfully!');
           
-          // Auto-redirect to dashboard after 3 seconds
-          setTimeout(() => {
-            navigate(getDashboardRoute());
-          }, 3000);
+          // Redirect to payment success page so user can download receipt
+          navigate(`/payment/success?tx_ref=${tx_ref}&status=success`);
         } else {
           throw new Error(data.message || 'Payment verification failed');
         }
