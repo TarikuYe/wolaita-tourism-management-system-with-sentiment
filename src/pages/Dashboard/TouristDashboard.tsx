@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Calendar, Star, MapPin, Clock, CreditCard, Heart, Plus, Eye, AlertCircle, Edit, Trash2, CheckCircle, Clock as ClockIcon, AlertTriangle, Filter, XCircle, RefreshCw, FileText, Users } from 'lucide-react';
+import { Calendar, Star, MapPin, Clock, CreditCard, Heart, Plus, Eye, AlertCircle, Edit, Trash2, CheckCircle, Clock as ClockIcon, AlertTriangle, Filter, XCircle, RefreshCw, FileText, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useBookings, useReviews, useFavorites } from '../../hooks/useFirestore';
 import { ReviewModal } from '../../components/Modals/ReviewModal';
+import { TouristBookingDetailsModal } from '../../components/Modals/TouristBookingDetailsModal';
 import { motion } from 'framer-motion';
 import { db } from '../../config/firebase';
 import { doc, deleteDoc, updateDoc, Timestamp, query, collection, where, getDocs, addDoc, serverTimestamp, getDoc, onSnapshot, orderBy } from 'firebase/firestore';
@@ -43,6 +44,11 @@ export const TouristDashboard: React.FC = () => {
   const [refundReason, setRefundReason] = useState('');
   const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
   const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
+  
+  // Booking Details Modal state and Upcoming Tours expand state
+  const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   
   // Use ref to track previous booking states for notifications
   const previousBookingsRef = useRef<Map<string, Booking>>(new Map());
@@ -540,6 +546,11 @@ export const TouristDashboard: React.FC = () => {
     setExpandedBooking(expandedBooking === bookingId ? null : bookingId);
   };
 
+  const handleViewBookingDetails = (booking: Booking) => {
+    setSelectedBookingForDetails(booking);
+    setShowDetailsModal(true);
+  };
+
   // Get refund request for a booking
   const getRefundRequestForBooking = (bookingId: string): RefundRequest | undefined => {
     const request = refundRequests.find(req => req.bookingId === bookingId);
@@ -557,10 +568,9 @@ export const TouristDashboard: React.FC = () => {
       return false; // Already has a refund request - show status instead
     }
 
-    // Can request refund if payment is paid/verified and booking is not cancelled or already refunded
+    // Can request refund if payment is paid/verified and booking is not cancelled
     return (booking.paymentStatus === 'paid' || booking.paymentStatus === 'verified') &&
-           booking.status !== 'cancelled' &&
-           booking.paymentStatus !== 'refunded';
+           booking.status !== 'cancelled';
   };
 
   // Get refund status badge
@@ -792,52 +802,57 @@ export const TouristDashboard: React.FC = () => {
                   {upcomingTours.length}
                 </span>
               </div>
-              <button
-                onClick={() => setBookingFilter('upcoming')}
-                className="text-amber-600 hover:text-amber-700 text-sm font-medium"
-              >
-                View All
-              </button>
+              {upcomingTours.length > 6 ? (
+                <button
+                  onClick={() => setShowAllUpcoming(!showAllUpcoming)}
+                  className="text-amber-600 hover:text-amber-700 text-sm font-medium flex items-center space-x-1"
+                >
+                  <span>{showAllUpcoming ? 'Show Less' : 'View All'}</span>
+                  {showAllUpcoming ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              ) : null}
             </div>
             <div className="p-6">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {upcomingTours.slice(0, 6).map((booking) => {
+                {(showAllUpcoming ? upcomingTours : upcomingTours.slice(0, 6)).map((booking) => {
                   const daysUntil = getDaysUntilTour(booking.tourDate);
                   return (
                     <div 
                       key={booking.id} 
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col justify-between"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 mb-1">{booking.tourName}</h4>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="h-4 w-4" />
-                              <span>{formatDate(booking.tourDate)}</span>
-                            </div>
-                            {daysUntil !== null && daysUntil >= 0 && (
+                      <div>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 mb-1">{booking.tourName}</h4>
+                            <div className="space-y-1 text-sm text-gray-600">
                               <div className="flex items-center space-x-1">
-                                <Clock className="h-4 w-4" />
-                                <span className={daysUntil <= 7 ? 'text-red-600 font-semibold' : 'text-gray-600'}>
-                                  {daysUntil === 0 
-                                    ? 'Today!' 
-                                    : daysUntil === 1 
-                                    ? 'Tomorrow' 
-                                    : `${daysUntil} days left`}
-                                </span>
+                                <Calendar className="h-4 w-4" />
+                                <span>{formatDate(booking.tourDate)}</span>
                               </div>
-                            )}
+                              {daysUntil !== null && daysUntil >= 0 && (
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="h-4 w-4" />
+                                  <span className={daysUntil <= 7 ? 'text-red-600 font-semibold' : 'text-gray-600'}>
+                                    {daysUntil === 0 
+                                      ? 'Today!' 
+                                      : daysUntil === 1 
+                                      ? 'Tomorrow' 
+                                      : `${daysUntil} days left`}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end space-y-1 ml-2">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
+                              {booking.status}
+                            </span>
+                            {getPaymentStatusBadge(booking.paymentStatus)}
                           </div>
                         </div>
-                        <div className="flex flex-col items-end space-y-1 ml-2">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
-                            {booking.status}
-                          </span>
-                          {getPaymentStatusBadge(booking.paymentStatus)}
-                        </div>
                       </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-2">
                         <div className="flex items-center space-x-3 text-sm">
                           <div className="flex items-center space-x-1 text-gray-600">
                             <CreditCard className="h-4 w-4" />
@@ -850,8 +865,9 @@ export const TouristDashboard: React.FC = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => toggleBookingExpansion(booking.id)}
-                            className="text-amber-600 hover:text-amber-700 text-sm font-medium flex items-center space-x-1"
+                            onClick={() => handleViewBookingDetails(booking)}
+                            className="text-amber-600 hover:text-amber-700 text-sm font-medium flex items-center space-x-1 hover:underline"
+                            title="View full booking details"
                           >
                             <Eye className="h-4 w-4" />
                             <span>Details</span>
@@ -863,12 +879,17 @@ export const TouristDashboard: React.FC = () => {
                 })}
               </div>
               {upcomingTours.length > 6 && (
-                <div className="mt-4 text-center">
+                <div className="mt-6 text-center">
                   <button
-                    onClick={() => setBookingFilter('upcoming')}
-                    className="text-amber-600 hover:text-amber-700 text-sm font-medium"
+                    onClick={() => setShowAllUpcoming(!showAllUpcoming)}
+                    className="inline-flex items-center space-x-2 px-5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-sm font-semibold transition-colors border border-amber-200 shadow-sm"
                   >
-                    View {upcomingTours.length - 6} more upcoming {upcomingTours.length - 6 === 1 ? 'tour' : 'tours'}
+                    <span>
+                      {showAllUpcoming 
+                        ? 'Show fewer upcoming tours' 
+                        : `View ${upcomingTours.length - 6} more upcoming ${upcomingTours.length - 6 === 1 ? 'tour' : 'tours'}`}
+                    </span>
+                    {showAllUpcoming ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </button>
                 </div>
               )}
@@ -1082,15 +1103,23 @@ export const TouristDashboard: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Expandable details */}
-                    <div className="mt-3">
+                    {/* Expandable details and Modal Trigger */}
+                    <div className="mt-3 flex items-center space-x-3">
                       <button
-                        onClick={() => toggleBookingExpansion(booking.id)}
-                        className="text-amber-600 hover:text-amber-700 text-sm font-medium flex items-center space-x-1"
+                        onClick={() => handleViewBookingDetails(booking)}
+                        className="text-amber-600 hover:text-amber-700 text-sm font-medium flex items-center space-x-1 hover:underline"
                       >
                         <Eye className="h-4 w-4" />
-                        <span>{expandedBooking === booking.id ? 'Hide' : 'View'} Details</span>
+                        <span>View Details</span>
                       </button>
+                      <button
+                        onClick={() => toggleBookingExpansion(booking.id)}
+                        className="text-gray-500 hover:text-gray-700 text-sm font-medium flex items-center space-x-1"
+                      >
+                        {expandedBooking === booking.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <span>{expandedBooking === booking.id ? 'Collapse' : 'Quick View'}</span>
+                      </button>
+                    </div>
                       
                       {expandedBooking === booking.id && (
                         <motion.div
@@ -1197,7 +1226,7 @@ export const TouristDashboard: React.FC = () => {
                                       }`}>
                                         <p className="font-semibold mb-1">Admin Response:</p>
                                         {refundRequest.adminNotes ? (
-                                          <p className="italic">"{refundRequest.adminNotes}"</p>
+                                          <p className="italic">&ldquo;{refundRequest.adminNotes}&rdquo;</p>
                                         ) : (
                                           <p className="italic text-gray-600">
                                             {refundRequest.status === 'processed' 
@@ -1279,9 +1308,8 @@ export const TouristDashboard: React.FC = () => {
                         </motion.div>
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               
               {filteredBookings.length === 0 && (
                 <div className="text-center py-8">
@@ -1476,6 +1504,28 @@ export const TouristDashboard: React.FC = () => {
             </div>
           </motion.div>
         </div>
+      )}
+      {/* Tourist Booking Details Modal */}
+      {selectedBookingForDetails && (
+        <TouristBookingDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedBookingForDetails(null);
+          }}
+          booking={selectedBookingForDetails}
+          refundRequest={getRefundRequestForBooking(selectedBookingForDetails.id)}
+          onCancelBooking={handleCancelBooking}
+          onRequestRefund={(booking) => {
+            setSelectedBookingForRefund(booking);
+            setShowRefundModal(true);
+          }}
+          onLeaveReview={handleLeaveReview}
+          canCancel={canCancelBooking(selectedBookingForDetails)}
+          canRefund={canRequestRefund(selectedBookingForDetails)}
+          canReview={selectedBookingForDetails.status === 'completed' && canReviewBooking(selectedBookingForDetails)}
+          isReviewed={reviews.some(r => r.bookingId === selectedBookingForDetails?.id)}
+        />
       )}
     </div>
   );
