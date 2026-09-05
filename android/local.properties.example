@@ -1,0 +1,12 @@
+sdk.dir=/Users/you/Library/Android/sdk
+CHAPA_PUBLIC_KEY=CHAPUBK_example
+FIREBASE_WEB_API_KEY=AIzaSyExample
+
+# Backend Configuration
+# For local development with Node.js backend:
+#   - Android Emulator: use http://10.0.2.2:3001/api/chapa
+#   - Physical Device: use http://YOUR_COMPUTER_IP:3001/api/chapa
+#   - To find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
+# For production: use your deployed backend URL
+CHAPA_BACKEND_URL=http://10.0.2.2:3001/api/chapa
+FUNCTIONS_REGION=us-central1

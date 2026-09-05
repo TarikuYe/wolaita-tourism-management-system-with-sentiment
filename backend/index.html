@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .positive {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .negative {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .neutral {
+            background-color: #e2e3e5;
+            border: 1px solid #d6d8db;
+            color: #383d41;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        
+        .score {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .examples {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .examples h3 {
+            margin-top: 0;
+        }
+        
+        .example-btn {
+            background: none;
+            border: 1px solid #007bff;
+            color: #007bff;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            width: auto;
+        }
+        
+        .example-btn:hover {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Sentiment Analysis Test</h1>
+        
+        <div class="input-group">
+            <textarea id="textInput" placeholder="Enter text to analyze sentiment..."></textarea>
+        </div>
+        
+        <button id="analyzeBtn" onclick="analyzeSentiment()">Analyze Sentiment</button>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="examples">
+            <h3>Try these examples:</h3>
+            <button class="example-btn" onclick="setExample('I love this product! It\'s absolutely amazing and works perfectly.')">Positive</button>
+            <button class="example-btn" onclick="setExample('This is okay, nothing special but not terrible either.')">Neutral</button>
+            <button class="example-btn" onclick="setExample('I hate this! Worst experience ever, completely disappointed.')">Negative</button>
+            <button class="example-btn" onclick="setExample('The weather is nice today and I had a decent lunch.')">Mixed</button>
+        </div>
+    </div>
+
+    <script>
+        function setExample(text) {
+            document.getElementById('textInput').value = text;
+        }
+        
+        async function analyzeSentiment() {
+            const text = document.getElementById('textInput').value.trim();
+            const button = document.getElementById('analyzeBtn');
+            const resultDiv = document.getElementById('result');
+            
+            if (!text) {
+                showResult('Please enter some text to analyze.', 'error');
+                return;
+            }
+            
+            // Show loading state
+            button.disabled = true;
+            button.textContent = 'Analyzing...';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '🔄 Analyzing sentiment...';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showResult(`Error: ${data.error}`, 'error');
+                } else {
+                    showResult(`
+                        <strong>Sentiment:</strong> ${data.label.toUpperCase()}
+                        <div class="score">Confidence: ${(data.score * 100).toFixed(2)}%</div>
+                    `, data.label);
+                }
+                
+            } catch (error) {
+                showResult(`Error: ${error.message}. Make sure the backend server is running on http://127.0.0.1:5000`, 'error');
+            } finally {
+                // Reset button
+                button.disabled = false;
+                button.textContent = 'Analyze Sentiment';
+            }
+        }
+        
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+        
+        // Allow pressing Enter to analyze (Shift+Enter for new line)
+        document.getElementById('textInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                analyzeSentiment();
+            }
+        });
+        
+        // Clear result when user starts typing
+        document.getElementById('textInput').addEventListener('input', function() {
+            document.getElementById('result').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
