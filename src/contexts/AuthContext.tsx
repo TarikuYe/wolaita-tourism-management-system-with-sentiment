@@ -46,6 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   // Ref to track if we're currently handling a deactivation to prevent duplicate toasts
   const isHandlingDeactivation = useRef(false);
+  // Ref to track if registration is in progress so onAuthStateChanged doesn't race against immediate signOut
+  const isRegistering = useRef(false);
 
   // Password management functions
   const updatePassword = async (newPassword: string) => {
@@ -110,6 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userVerifiedListener();
         userVerifiedListener = null;
       }
+
+      // If registration is currently in flight, skip loading Firestore doc as user will be immediately signed out
+      if (isRegistering.current) {
+        return;
+      }
       
       if (user) {
         try {
@@ -132,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentUser(null);
                 setLoading(false);
                 setIsLoggingIn(false);
-                //toast.error('Your account has been deactivated. Please contact the administrator to reactivate your account.');
                 // Reset flag after a delay to ensure onAuthStateChanged doesn't show duplicate
                 setTimeout(() => {
                   isHandlingDeactivation.current = false;
@@ -180,8 +186,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     isHandlingDeactivation.current = true;
                     signOut(auth).then(() => {
                       setCurrentUser(null);
-                     // toast.error('Your account has been deactivated. Please contact the administrator to reactivate your account.');
-                      // Reset flag after a delay to ensure onAuthStateChanged doesn't show duplicate
                       setTimeout(() => {
                         isHandlingDeactivation.current = false;
                       }, 2000);
@@ -203,6 +207,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
               }
             }, (error) => {
+              if (error?.code === 'permission-denied' || error?.message?.includes('insufficient permissions')) {
+                // Ignore gracefully when signing out or unauthenticated
+                return;
+              }
               console.error('Error listening to user verified status:', error);
             });
           } else {
@@ -212,7 +220,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCurrentUser(newUser);
             console.log('New user created in Firestore:', newUser);
           }
-        } catch (error) {
+        } catch (error: any) {
+          if (error?.code === 'permission-denied' || error?.message?.includes('insufficient permissions')) {
+            console.log('User data fetch ignored (unauthenticated or transitioning state)');
+            setCurrentUser(null);
+            return;
+          }
           console.error('Error handling user data:', error);
           // Only show error toast if not handling deactivation
           if (!isHandlingDeactivation.current) {
@@ -225,6 +238,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoggingIn(false);
         }
       } else {
+        if (userVerifiedListener) {
+          userVerifiedListener();
+          userVerifiedListener = null;
+        }
         setCurrentUser(null);
         setLoading(false);
         setIsLoggingIn(false);
@@ -366,6 +383,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Email/Password Registration - Redirects to login after success
   const register = async (email: string, password: string, userData: Partial<User>) => {
     try {
+      isRegistering.current = true;
       setLoading(true);
 
       // Password strength validation
@@ -451,6 +469,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.error(errorMessage);
       throw error;
     } finally {
+      isRegistering.current = false;
       setLoading(false);
     }
   };
