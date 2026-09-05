@@ -94,11 +94,26 @@ export const Login: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md"
+              className={`mb-6 p-4 rounded-xl flex items-start space-x-3 border ${
+                message === 'verified'
+                  ? 'bg-green-50 border-green-200 text-green-800'
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}
             >
-              <div className="flex items-center">
-                <AlertCircle className="h-5 w-5 text-amber-600 mr-2" />
-                <p className="text-sm font-medium text-amber-800">{message}</p>
+              <AlertCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                message === 'verified' ? 'text-green-600' : 'text-amber-600'
+              }`} />
+              <div className="text-sm">
+                {message === 'verified' ? (
+                  <p className="font-medium">Your email has been verified successfully! You may now sign in.</p>
+                ) : message === 'registered' ? (
+                  <div>
+                    <p className="font-semibold">Account created successfully!</p>
+                    <p className="mt-1 text-xs text-amber-700">Please check your inbox (and Spam/Junk folder) to verify your email address.</p>
+                  </div>
+                ) : (
+                  <p className="font-medium">{message}</p>
+                )}
               </div>
             </motion.div>
           )}

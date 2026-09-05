@@ -8,7 +8,8 @@ import {
   updatePassword as firebaseUpdatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
-  sendPasswordResetEmail as firebaseSendPasswordResetEmail
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  sendEmailVerification as firebaseSendEmailVerification
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -388,6 +389,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
+      // Send Firebase Email Verification
+      try {
+        await firebaseSendEmailVerification(user, {
+          url: `${window.location.origin}/login?message=verified`,
+          handleCodeInApp: false,
+        });
+        console.log('Verification email sent to:', email);
+      } catch (verificationError) {
+        console.warn('Failed to send verification email automatically:', verificationError);
+      }
+
       // Force role to be 'tourist' for public registration
       const newUser: User = {
         id: user.uid,
@@ -396,7 +408,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'tourist',
         phone: userData.phone!.trim(),
         nationality: userData.nationality!.trim(),
-        verified: false,
+        verified: true,
         createdAt: new Date(),
         ...userData,
       };
@@ -407,7 +419,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signOut(auth);
       
       console.log('User registered successfully:', newUser);
-      toast.success('Account created successfully! Please log in to continue.');
       
     } catch (error: any) {
       console.error('Registration error:', error);

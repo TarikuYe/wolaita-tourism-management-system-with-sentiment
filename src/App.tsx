@@ -28,6 +28,7 @@ import { FavoritesPage } from './pages/FavoritesPage';
 import { TourDetail } from './pages/TourDetail';
 import TouristProfile from './pages/Profile/TouristProfile';
 import { ForgotPassword } from './components/auth/ForgotPassword';
+import { VerifyEmail } from './pages/Auth/VerifyEmail';
 import { ContactForm } from './components/ContactForm';
 import { Users, Heart, Shield, Globe, Award } from 'lucide-react';
 
@@ -194,6 +195,7 @@ const AppContent: React.FC = () => {
             <Route path="/culture/cottages" element={<Cottages />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             
             {/* Auth Routes - Redirect if already authenticated */}
             <Route path="/login" element={

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, User, Phone, UserCheck, Eye, EyeOff, Globe, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Mail, Lock, User, Phone, UserCheck, Eye, EyeOff, Globe, AlertCircle, CheckCircle2, XCircle, Info, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { motion } from 'framer-motion';
@@ -136,16 +136,23 @@ export const Register: React.FC = () => {
       return;
     }
 
+    const targetEmail = data.email.trim();
     setIsLoading(true);
     setError('');
+
     try {
-      await registerUser(data.email, data.password, {
-        name: data.name,
-        phone: data.phone,
-        nationality: data.nationality,
+      // Persist real-time email for immediate pickup on verify page
+      sessionStorage.setItem('pending_verification_email', targetEmail);
+      localStorage.setItem('pending_verification_email', targetEmail);
+
+      await registerUser(targetEmail, data.password, {
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        nationality: data.nationality.trim(),
       });
-      // After successful registration, redirect to login page
-      navigate('/login', { replace: true });
+
+      // Directly navigate to verify-email page smoothly via React Router
+      navigate(`/verify-email?email=${encodeURIComponent(targetEmail)}`, { replace: true });
     } catch (error: any) {
       console.error('Registration failed:', error);
       if (error instanceof FirebaseError) {
@@ -153,7 +160,6 @@ export const Register: React.FC = () => {
       } else {
         setError(error.message || 'Failed to create account. Please try again.');
       }
-    } finally {
       setIsLoading(false);
     }
   };
@@ -204,18 +210,18 @@ export const Register: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="max-w-md w-full space-y-8"
+        transition={{ duration: 0.5 }}
+        className="max-w-md w-full space-y-6"
       >
-        <div>
-          <div className="mx-auto h-12 w-12 bg-amber-600 rounded-full flex items-center justify-center">
-            <UserCheck className="h-6 w-6 text-white" />
+        <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center shadow-sm">
+            <UserCheck className="h-8 w-8 text-amber-600" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
             {t('auth.register.title') || 'Create Your Account'}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -223,24 +229,22 @@ export const Register: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           {/* Message from URL params */}
           {message && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md"
+              className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start space-x-3"
             >
-              <div className="flex items-center">
-                <AlertCircle className="h-5 w-5 text-amber-600 mr-2" />
-                <p className="text-sm font-medium text-amber-800">{message}</p>
-              </div>
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm font-medium text-amber-800">{message}</p>
             </motion.div>
           )}
           {/* Global Error Display */}
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600 text-center">{error}</p>
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600 text-center font-medium">{error}</p>
             </div>
           )}
 
