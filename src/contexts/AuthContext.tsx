@@ -20,7 +20,7 @@ interface AuthContextType {
   currentUser: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, portal?: 'public' | 'admin') => Promise<void>;
   register: (email: string, password: string, userData: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
   setCurrentUser: (user: User | null) => void;
@@ -48,6 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isHandlingDeactivation = useRef(false);
   // Ref to track if registration is in progress so onAuthStateChanged doesn't race against immediate signOut
   const isRegistering = useRef(false);
+  // Ref to track which portal is initiating login ('public' | 'admin') to prevent premature state updates & redirects
+  const activeLoginPortal = useRef<'public' | 'admin' | null>(null);
 
   // Password management functions
   const updatePassword = async (newPassword: string) => {
@@ -156,6 +158,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Reset deactivation flag if account is active
             isHandlingDeactivation.current = false;
             
+            // If logging in through public portal but user is admin, block state update
+            if (activeLoginPortal.current === 'public' && userData.role === 'admin') {
+              console.log('Blocked admin user from setting public auth state');
+              await signOut(auth);
+              setCurrentUser(null);
+              setLoading(false);
+              setIsLoggingIn(false);
+              return;
+            }
+
+            // If logging in through admin portal but user is NOT admin, block state update
+            if (activeLoginPortal.current === 'admin' && userData.role !== 'admin') {
+              console.log('Blocked non-admin user from setting admin auth state');
+              await signOut(auth);
+              setCurrentUser(null);
+              setLoading(false);
+              setIsLoggingIn(false);
+              return;
+            }
+
             const userWithRole = createUserData(user, userData);
             setCurrentUser(userWithRole);
             console.log('User loaded from Firestore:', userWithRole);
@@ -256,42 +278,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Email/Password Login
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, portal: 'public' | 'admin' = 'public') => {
     try {
       setIsLoggingIn(true);
+      activeLoginPortal.current = portal;
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Check if user account is activated after successful Firebase Auth
+      // Check if user account is activated and check portal access role
       try {
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
         
         if (userDoc.exists()) {
           const userData = userDoc.data();
           
-          // Check if account is deactivated
+          // 1. Check if account is deactivated
           if (userData.verified === false) {
-            // Set flag to prevent duplicate toast from onAuthStateChanged
             isHandlingDeactivation.current = true;
-            // Sign out the user immediately
             await signOut(auth);
+            setCurrentUser(null);
             setIsLoggingIn(false);
+            activeLoginPortal.current = null;
             const errorMessage = 'Your account has been deactivated. Please contact the administrator to reactivate your account.';
             toast.error(errorMessage);
-            // Reset flag after showing toast to ensure onAuthStateChanged doesn't show duplicate
+            setTimeout(() => {
+              isHandlingDeactivation.current = false;
+            }, 2000);
+            throw new Error(errorMessage);
+          }
+
+          // 2. Reject Admin accounts on the public login portal
+          if (portal === 'public' && userData.role === 'admin') {
+            isHandlingDeactivation.current = true;
+            await signOut(auth);
+            setCurrentUser(null);
+            setIsLoggingIn(false);
+            activeLoginPortal.current = null;
+            const errorMessage = 'Invalid credentials.';
+            toast.error(errorMessage, { duration: 4000 });
+            setTimeout(() => {
+              isHandlingDeactivation.current = false;
+            }, 2000);
+            throw new Error(errorMessage);
+          }
+
+          // 3. Reject non-admin accounts on the admin console
+          if (portal === 'admin' && userData.role !== 'admin') {
+            isHandlingDeactivation.current = true;
+            await signOut(auth);
+            setCurrentUser(null);
+            setIsLoggingIn(false);
+            activeLoginPortal.current = null;
+            const errorMessage = 'Access Denied: Administrator privileges are required to access this console.';
+            toast.error(errorMessage, { duration: 4000 });
             setTimeout(() => {
               isHandlingDeactivation.current = false;
             }, 2000);
             throw new Error(errorMessage);
           }
         } else {
-          // User document doesn't exist - allow login but this is unusual
+          if (portal === 'admin') {
+            await signOut(auth);
+            setCurrentUser(null);
+            setIsLoggingIn(false);
+            activeLoginPortal.current = null;
+            const errorMessage = 'Access Denied: Administrative profile not found.';
+            toast.error(errorMessage);
+            throw new Error(errorMessage);
+          }
           console.warn('User document not found in Firestore for:', userCredential.user.uid);
         }
       } catch (checkError: any) {
-        console.error('Error checking user activation status:', checkError);
+        console.error('Error checking user activation/role status:', checkError);
         
-        // Don't show duplicate error if it's already a deactivated account error
-        if (checkError.message && checkError.message.includes('deactivated')) {
+        if (checkError.message && (
+          checkError.message.includes('deactivated') ||
+          checkError.message.includes('Invalid credentials') ||
+          checkError.message.includes('Access Denied')
+        )) {
           throw checkError;
         }
         
@@ -299,23 +362,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Only show error if not already handling deactivation
         if (!isHandlingDeactivation.current) {
           await signOut(auth);
+          setCurrentUser(null);
           setIsLoggingIn(false);
+          activeLoginPortal.current = null;
           const errorMessage = 'Error verifying account status. Please try again or contact support.';
           toast.error(errorMessage);
           throw new Error(errorMessage);
         } else {
           setIsLoggingIn(false);
+          activeLoginPortal.current = null;
           throw checkError;
         }
       }
       
+      activeLoginPortal.current = null;
       toast.success('Successfully logged in!');
     } catch (error: any) {
       console.error('Login error:', error);
       setIsLoggingIn(false);
+      activeLoginPortal.current = null;
       
-      // Don't show error toast if we already showed one for deactivated account or verification error
-      if (error.message && (error.message.includes('deactivated') || error.message.includes('Error verifying account status'))) {
+      if (error.message && (
+        error.message.includes('deactivated') || 
+        error.message.includes('Invalid credentials') || 
+        error.message.includes('Access Denied') ||
+        error.message.includes('Error verifying account status')
+      )) {
         throw error;
       }
       

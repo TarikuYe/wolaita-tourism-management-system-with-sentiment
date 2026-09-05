@@ -10,7 +10,9 @@ import { Tours } from './pages/Tours';
 import { Festivals } from './pages/Festivals';
 import FestivalDetail from './pages/FestivalDetail';
 import { Login } from './pages/Auth/Login';
+import { AdminLogin } from './pages/Auth/AdminLogin';
 import { Register } from './pages/Auth/Register';
+import { NotFound } from './pages/NotFound';
 import { Dashboard } from './pages/Dashboard/Dashboard';
 import { PaymentSuccess } from './pages/Payment/PaymentSuccess';
 import { PaymentCallback } from './pages/Payment/PaymentCallback';
@@ -128,16 +130,17 @@ const AppContent: React.FC = () => {
   const location = useLocation();
   const { currentUser, loading } = useAuth();
 
-  // Hide navbar and footer for admin, agency, and cashier dashboards
+  // Hide navbar and footer for admin, agency, and cashier dashboards, and admin login portal
+  const isAdminLoginRoute = location.pathname.startsWith('/tourAdminsodo/login');
   const isDashboardRoute = location.pathname.startsWith('/dashboard') || 
                           location.pathname.startsWith('/cashier') || 
                           location.pathname.startsWith('/agency') ||
                           location.pathname.startsWith('/tourist');
   
-  // Check if current user is admin, agency, or cashier on dashboard route
-  const shouldHideNavbarFooter = isDashboardRoute && 
+  // Check if current user is admin, agency, or cashier on dashboard route, or on admin login
+  const shouldHideNavbarFooter = isAdminLoginRoute || (isDashboardRoute && 
     currentUser && 
-    (currentUser.role === 'admin' || currentUser.role === 'agency' || currentUser.role === 'cashier');
+    (currentUser.role === 'admin' || currentUser.role === 'agency' || currentUser.role === 'cashier'));
 
   // Show loading screen while auth is loading
   if (loading) {
@@ -159,6 +162,7 @@ const AppContent: React.FC = () => {
       '/agency', 
       '/cashier', 
       '/login', 
+      '/tourAdminsodo/login',
       '/register', 
       '/forgot-password'
       // Only allow dashboard and auth routes - no public pages
@@ -197,7 +201,10 @@ const AppContent: React.FC = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             
-            {/* Auth Routes - Redirect if already authenticated */}
+            {/* Secret Dedicated Admin Login Route */}
+            <Route path="/tourAdminsodo/login" element={<AdminLogin />} />
+
+            {/* Public Auth Routes - Redirect if already authenticated */}
             <Route path="/login" element={
               <PublicRoute>
                 <Login />
@@ -438,8 +445,8 @@ const AppContent: React.FC = () => {
               </div>
             } />
 
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Fallback 404 route for unknown routes including /admin/login */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
       </main>
       {!shouldHideNavbarFooter && <Footer />}

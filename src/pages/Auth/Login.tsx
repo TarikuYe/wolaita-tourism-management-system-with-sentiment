@@ -14,6 +14,7 @@ interface LoginForm {
 export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const message = searchParams.get('message');
   const { login, currentUser, loading } = useAuth();
@@ -41,11 +42,13 @@ export const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginForm) => {
     setIsSubmitting(true);
+    setErrorMessage(null);
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, 'public');
       // Don't reset isSubmitting here - let the redirect happen
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      setErrorMessage(error.message || 'Login failed. Please check your credentials.');
       setIsSubmitting(false);
     }
   };
@@ -54,7 +57,7 @@ export const Login: React.FC = () => {
   // 1. AuthContext is still loading (checking initial auth state)
   // 2. User is submitting login form
   // 3. We have a currentUser (success) while redirect effect runs
-  const showLoading = loading || isSubmitting || !!currentUser;
+  const showLoading = loading || (isSubmitting && !errorMessage) || !!currentUser;
 
   if (showLoading) {
     return (
@@ -90,7 +93,20 @@ export const Login: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-xl p-8">
-          {message && (
+          {errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-xl flex items-start space-x-3 border bg-red-50 border-red-200 text-red-800"
+            >
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-600" />
+              <div className="text-sm font-medium">
+                {errorMessage}
+              </div>
+            </motion.div>
+          )}
+
+          {message && !errorMessage && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
