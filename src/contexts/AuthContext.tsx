@@ -238,10 +238,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoggingIn(false);
         }
       } else {
-        if (userVerifiedListener) {
-          userVerifiedListener();
-          userVerifiedListener = null;
-        }
         setCurrentUser(null);
         setLoading(false);
         setIsLoggingIn(false);
