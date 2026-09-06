@@ -66,7 +66,7 @@ const ExploreWolaita: React.FC = () => {
       description: t('explore.attractions.damotMountainDesc')
     },
     {
-      src: '/images/Attractions/Ajora.jpg',
+      src: '/images/Attractions/Ajoo.jpg',
       title: t('explore.attractions.otherAttraction'),
       description: t('explore.attractions.otherAttractionDesc')
     },

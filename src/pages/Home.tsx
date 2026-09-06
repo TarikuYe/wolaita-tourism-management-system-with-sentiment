@@ -39,7 +39,7 @@ export const Home: React.FC = () => {
     {
       id: "mochena-borago-cave",
       title: t('home.mochena.borago.cave'),
-      image: 'https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+      image: '../../images/Attractions/mochena.webp',
       price: '$150',
       duration: '3 Days',
       rating: 4.9,
@@ -47,7 +47,7 @@ export const Home: React.FC = () => {
     {
       id: "ajora-twin-waterfalls",
       title: t('home.ajora.twin.waterfalls'),
-      image: 'https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+      image: '../../images/Attractions/Ajoo.jpg',
       price: '$280',
       duration: '5 Days',
       rating: 4.8,
@@ -55,7 +55,7 @@ export const Home: React.FC = () => {
     {
       id: "abune-tekle-haymanot-monastery",
       title: t('home.abune.tekle.haymanot.monastery'),
-      image: 'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+      image: '../../images/Attractions/Abune.jpg',
       price: '$120',
       duration: '2 Days',
       rating: 4.9,
@@ -197,7 +197,7 @@ export const Home: React.FC = () => {
 
           <div className="text-center mt-12">
             <Link
-              to="/tours"
+              to={currentUser ? "/tours" : "/login"}
               className="inline-flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors"
             >
               <span>{t('home.view.all.tours')}</span>

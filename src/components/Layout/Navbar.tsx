@@ -46,7 +46,7 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { to: '/', label: t('nav.home') },
-    { to: '/tours', label: t('nav.tours'), isTours: true },
+    ...(currentUser ? [{ to: '/tours', label: t('nav.tours'), isTours: true }] : []),
     { to: '/festivals', label: t('nav.festivals') },
     {
       label: t('nav.culture'),
@@ -60,7 +60,6 @@ export const Navbar: React.FC = () => {
     { to: '/hotel', label: t('nav.hotel') },
     { to: '/about', label: t('nav.about') },
     { to: '/contact', label: t('nav.contact') },
-    
   ];
   
   return (

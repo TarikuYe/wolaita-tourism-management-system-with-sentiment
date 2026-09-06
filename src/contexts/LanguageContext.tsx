@@ -181,6 +181,16 @@ Wolaita situated in the mid highland areas of southern Ethiopia on the escarpmen
 'explore.attractionsText': 'Before 58,000-70,000 years ago human beings were lived Mochena Borago rock shelter, the hot sprig of Abela chokare, the great fall of Ajora twin falls, the color full forest carbon project, the variety fruit trees, the friendly people, the historic warriors, the new year festival Gitaata, the natural birdage Xoosaa Zanphiya, the singing birds and the beautiful mount Damota. All those diverse qualities are UNFORGETABLE.',
 'explore.galleryTitle': 'Gallery of Wolaita Attractions',
 'explore.galleryText': 'Take a glimpse at the natural and cultural wonders of Wolaita through this image collection.',
+'explore.attractions.ajoraFalls': 'Ajora Falls',
+'explore.attractions.ajoraFallsDesc': 'One of the most spectacular waterfalls in the region cascading dramatically into lush green valleys.',
+'explore.attractions.ajoraTwinFalls': 'Ajora Twin Waterfalls',
+'explore.attractions.ajoraTwinFallsDesc': 'The iconic twin waterfall of Africa, featuring the stunning Soke and Ajancho cascades plunging over 170m and 210m.',
+'explore.attractions.godBridge': "God's Bridge (Xoosaa Zanphiya)",
+'explore.attractions.godBridgeDesc': 'A magnificent natural stone bridge sculpted naturally over running waters with rich cultural heritage.',
+'explore.attractions.damotMountain': 'Mount Damota',
+'explore.attractions.damotMountainDesc': 'The highest peak in Wolaita offering panoramic viewpoints, rich biodiversity, and ancient prehistoric cave shelters.',
+'explore.attractions.otherAttraction': 'Mochena Borago Rock Shelter',
+'explore.attractions.otherAttractionDesc': 'Prehistoric shelter on Mount Damota where archaeological evidence shows human habitation dating back 50,000–70,000 years.',
 
 //Culture
 'culture.food.title': "Traditional Food & Drinks in Wolaita",
@@ -524,6 +534,16 @@ Wolaita situated in the mid highland areas of southern Ethiopia on the escarpmen
 'explore.attractionsText': '58,000 እስከ 70,000 ዓመታት በፊት ሰዎች በሞቸና ቦራጎ የድንጋይ መጠለያ ውስጥ ይኖሩ ነበር። የአቤላ ጮካሬ እሳት ዝናብ ፣ አጆራ ባለባትና እጅግ ከፍተኛ ግድብ፣ በቀለም የተሞላው የዱር ካርቦን ፕሮጀክት፣ የፍሬ ዛፎች በዝሃ፣ አመራሮችና ታሪካዊ አባቶች፣ የአዲስ አመት በዓል (ጊታታ)፣ የወፎች መኖሪያ ቦታ ዞሳ ዛንፊያ፣ የሚዘምሩ ወፎችና ቆንጆ ደሞታ ተራራ ፣ እነዚህ ሁሉ የተለያዩ ባህላዊና ተፈጥሯዊ ባህላዊ ባህላት ማስታወሻ የማይረሱ ናቸው።',
 'explore.galleryTitle': 'የወላይታ መሳብ ቦታዎች ማዕድ',
 'explore.galleryText': 'የወላይታን ተፈጥሯዊና ባህላዊ ድንቅ ነገሮች በዚህ የምስል ስብስብ ውስጥ ይመልከቱ።',
+'explore.attractions.ajoraFalls': 'አጆራ ፏፏቴ',
+'explore.attractions.ajoraFallsDesc': 'በቦሎሶ ቦምቤ ወረዳ ወደ ለምለም አረንጓዴ ሸለቆዎች በግርማ ሞገስ የሚወርድ አስደናቂ የተፈጥሮ ፏፏቴ።',
+'explore.attractions.ajoraTwinFalls': 'አጆራ እጥፍ ፏፏቴ',
+'explore.attractions.ajoraTwinFallsDesc': 'በአፍሪካ ብቸኛው እጥፍ ፏፏቴ፥ የሶኬ እና አጃንቾ መንትያ ፏፏቴዎች ከ170 እና 210 ሜትር በላይ ወደ ሸለቆ ይወርዳሉ።',
+'explore.attractions.godBridge': 'የእግዚአብሔር ድልድይ (ጾሳ ዛንፊያ)',
+'explore.attractions.godBridgeDesc': 'በወንዝ ላይ በተፈጥሮ የተሰራ ግርማ ሞገስ ያለው የተፈጥሮ የድንጋይ ድልድይ እና ውብ የተፈጥሮ እይታ።',
+'explore.attractions.damotMountain': 'ደሞታ ተራራ',
+'explore.attractions.damotMountainDesc': 'የስምጥ ሸለቆን ቁልጭ አድርጎ የሚያሳይ፣ ብዝሃ ሕይወት እና ጥንታዊ ዋሻዎችን የያዘው የወላይታ ከፍተኛው ተራራ።',
+'explore.attractions.otherAttraction': 'ሞቼና ቦራጎ የድንጋይ መጠለያ',
+'explore.attractions.otherAttractionDesc': 'ከ50,000-70,000 ዓመታት በፊት የሰው ልጆች ይኖሩበት የነበረ በደሞታ ተራራ ላይ የሚገኝ ጥንታዊ ቅድመ-ታሪካዊ ዋሻ።',
 
 //Culture
 
