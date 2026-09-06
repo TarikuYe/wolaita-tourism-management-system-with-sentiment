@@ -1,8 +1,7 @@
 import React from 'react';
-import { X, Printer, Mail } from 'lucide-react';
+import { X, Printer, Mail, Calendar, Users, MapPin, CreditCard, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-import { Booking } from '../../types/booking'; // Import Booking from shared types
+import { Booking } from '../../types/booking';
 
 interface BookingDetailsModalProps {
   isOpen: boolean;
@@ -15,26 +14,35 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
     return null;
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'confirmed':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'pending':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'completed':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'cancelled':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completed': return 'bg-green-100 text-green-800';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getPaymentBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+      case 'completed':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'pending':
+      case 'pending_verification':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Check if the click occurred directly on the backdrop (the motion.div)
     if (e.target === e.currentTarget) {
       onClose();
     }
@@ -43,97 +51,112 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={handleBackdropClick} // Add click handler to the backdrop
+        <div
+          className="fixed inset-0 z-[99990] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto"
+          onClick={handleBackdropClick}
         >
           <motion.div
-            className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
-            initial={{ scale: 0.9, y: 50 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 50 }}
+            className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-100 p-6 sm:p-8"
+            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.95, y: 20, opacity: 0 }}
           >
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-xl font-semibold text-gray-900">Booking Details</h3>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+            {/* Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-xs">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Booking Details</h3>
+                  <p className="text-xs text-slate-500 font-medium">Record overview</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4 text-sm text-gray-700">
-              <div>
-                <p className="font-medium text-gray-900">Booking ID:</p>
-                <p>{booking.id}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Tourist Name:</p>
-                <p>{booking.customerName || 'N/A'}</p>
-              </div>
-              {booking.customerEmail && (
-                <div>
-                  <p className="font-medium text-gray-900">Tourist Email:</p>
-                  <p>{booking.customerEmail}</p>
+
+            {/* Content Details */}
+            <div className="space-y-4 text-xs">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 uppercase tracking-wider font-bold">Booking ID</span>
+                  <span className="font-mono font-bold text-slate-800">{booking.id}</span>
                 </div>
-              )}
-              <div>
-                <p className="font-medium text-gray-900">Tour Title:</p>
-                <p>{booking.tourName}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Tour ID:</p>
-                <p>{booking.tourId}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Booking Date:</p>
-                <p>{booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Tour Date:</p>
-                <p>{booking.tourDate ? new Date(booking.tourDate).toLocaleDateString() : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Number of Participants:</p>
-                <p>{booking.participants}</p>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Payment Status:</p>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusColor(booking.paymentStatus)}`}>
-                  {booking.paymentStatus}
-                </span>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Booking Status:</p>
-                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
-                  {booking.status}
-                </span>
-              </div>
-              {booking.feedback && (
-                <div>
-                  <p className="font-medium text-gray-900">Feedback:</p>
-                  <p className="italic">{booking.feedback}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 uppercase tracking-wider font-bold">Tour Title</span>
+                  <span className="font-bold text-slate-900">{booking.tourName}</span>
                 </div>
-              )}
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 uppercase tracking-wider font-bold">Tourist</span>
+                  <span className="font-bold text-slate-800">{booking.customerName || 'N/A'}</span>
+                </div>
+                {booking.customerEmail && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 uppercase tracking-wider font-bold">Email</span>
+                    <span className="text-slate-700">{booking.customerEmail}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-1">
+                  <span className="text-slate-400 uppercase tracking-wider font-bold block">Participants</span>
+                  <p className="text-base font-extrabold text-slate-900">{booking.participants} Person(s)</p>
+                </div>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-1">
+                  <span className="text-slate-400 uppercase tracking-wider font-bold block">Tour Date</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {booking.tourDate ? new Date(booking.tourDate).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-1.5">
+                  <span className="text-slate-400 uppercase tracking-wider font-bold block">Booking Status</span>
+                  <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-lg border uppercase tracking-wider ${getStatusBadge(booking.status)}`}>
+                    {booking.status}
+                  </span>
+                </div>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-1.5">
+                  <span className="text-slate-400 uppercase tracking-wider font-bold block">Payment Status</span>
+                  <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-lg border uppercase tracking-wider ${getPaymentBadge(booking.paymentStatus)}`}>
+                    {booking.paymentStatus}
+                  </span>
+                </div>
+              </div>
+
               {booking.specialRequests && (
-                <div>
-                  <p className="font-medium text-gray-900">Special Requests:</p>
-                  <p className="italic">{booking.specialRequests}</p>
+                <div className="bg-orange-50/60 border border-orange-200/70 rounded-2xl p-4 space-y-1">
+                  <span className="text-xs font-bold text-orange-950 uppercase tracking-wider block">Special Requests</span>
+                  <p className="text-slate-700 leading-relaxed">{booking.specialRequests}</p>
                 </div>
               )}
             </div>
-            <div className="p-4 border-t flex justify-end space-x-3">
-              <button className="flex items-center space-x-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
-                <Printer size={18} />
+
+            {/* Actions */}
+            <div className="pt-6 border-t border-slate-100 flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => window.print()}
+                className="flex items-center space-x-1.5 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all text-xs uppercase tracking-wider"
+              >
+                <Printer className="h-4 w-4" />
                 <span>Print</span>
               </button>
-              <button className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
-                <Mail size={18} />
-                <span>Send Message</span>
+              <button
+                onClick={onClose}
+                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all text-xs uppercase tracking-wider shadow-xs"
+              >
+                Close
               </button>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

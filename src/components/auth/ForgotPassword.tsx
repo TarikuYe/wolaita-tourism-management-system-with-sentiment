@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Info, RefreshCw } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Info, RefreshCw, KeyRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -33,8 +33,6 @@ export const ForgotPassword: React.FC = () => {
       console.error('Password reset error:', error);
       
       let errorText = 'Unable to send password reset email. Please try again.';
-      
-      // Handle specific Firebase error codes
       if (error.code === 'auth/user-not-found') {
         errorText = 'No account found with this email address.';
       } else if (error.code === 'auth/invalid-email') {
@@ -52,63 +50,61 @@ export const ForgotPassword: React.FC = () => {
     }
   };
 
-  // Helper function to ensure string output from translations
   const getTranslation = (key: string): string => {
     const translation = t(key);
     return Array.isArray(translation) ? translation[0] : translation;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full space-y-6"
+        transition={{ duration: 0.6 }}
+        className="max-w-md w-full space-y-8"
       >
         {/* Header Icon */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center shadow-sm">
-            <Mail className="h-8 w-8 text-amber-600" />
+          <div className="mx-auto h-14 w-14 bg-orange-100/80 border border-orange-200/80 text-orange-600 rounded-2xl flex items-center justify-center shadow-xs mb-4">
+            <KeyRound className="h-7 w-7" />
           </div>
-          <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
-            {submittedEmail ? 'Check Your Email' : getTranslation('auth.forgotPassword.title')}
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {submittedEmail ? 'Check Your Email' : getTranslation('auth.forgotPassword.title') || 'Reset Password'}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-sm text-slate-600">
             {submittedEmail 
               ? 'Password reset instructions have been dispatched' 
-              : getTranslation('auth.forgotPassword.subtitle')}
+              : getTranslation('auth.forgotPassword.subtitle') || "Enter your email and we'll send a recovery link"}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8 sm:p-10">
           {submittedEmail ? (
-            /* Success confirmation screen */
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="space-y-6 text-center"
             >
-              <div className="mx-auto h-12 w-12 bg-green-50 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="h-7 w-7 text-green-600" />
+              <div className="mx-auto h-12 w-12 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-200">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-slate-600">
                   We have sent a secure password recovery link to:
                 </p>
-                <p className="text-base font-semibold text-gray-900 bg-amber-50 py-1.5 px-3 rounded-lg border border-amber-200/60 inline-block">
+                <p className="text-sm font-bold text-slate-900 bg-orange-50 py-2 px-4 rounded-xl border border-orange-200/80 inline-block">
                   {submittedEmail}
                 </p>
               </div>
 
               {/* Spam / Junk Folder Notice Box */}
-              <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-4 text-left flex items-start space-x-3">
-                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-blue-800 space-y-1">
-                  <p className="font-semibold text-blue-900">Can't find the email?</p>
-                  <p>
-                    Please check your <strong>Spam</strong> or <strong>Junk</strong> folder. Automated system emails may occasionally be filtered there by your email provider.
+              <div className="bg-orange-50/60 border border-orange-200/80 rounded-2xl p-4 text-left flex items-start space-x-3">
+                <Info className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-orange-900 space-y-1">
+                  <p className="font-bold">Can't find the email?</p>
+                  <p className="text-orange-800">
+                    Please check your <strong>Spam</strong> or <strong>Junk</strong> folder. Automated recovery emails may occasionally be filtered there.
                   </p>
                 </div>
               </div>
@@ -116,7 +112,7 @@ export const ForgotPassword: React.FC = () => {
               <div className="space-y-3 pt-2">
                 <Link
                   to="/login"
-                  className="w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-amber-600 hover:bg-amber-700 shadow-sm transition-colors"
+                  className="w-full flex justify-center py-3.5 px-4 text-sm font-bold rounded-xl text-white bg-orange-500 hover:bg-orange-600 shadow-xs hover:shadow-md transition-all"
                 >
                   Return to Sign In
                 </Link>
@@ -127,34 +123,33 @@ export const ForgotPassword: React.FC = () => {
                     setSubmittedEmail(null);
                     setErrorMessage(null);
                   }}
-                  className="w-full flex items-center justify-center py-2 px-4 text-xs font-medium text-gray-600 hover:text-amber-600 transition-colors"
+                  className="w-full flex items-center justify-center py-2 px-4 text-xs font-bold text-slate-500 hover:text-orange-600 transition-colors"
                 >
                   <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                  Try another email address
+                  <span>Try another email address</span>
                 </button>
               </div>
             </motion.div>
           ) : (
-            /* Reset Form */
-            <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
               {errorMessage && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-lg p-4 bg-red-50 border border-red-200 flex items-start space-x-3"
+                  className="rounded-2xl p-4 bg-rose-50 border border-rose-200 flex items-start space-x-3"
                 >
-                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium text-red-800">{errorMessage}</p>
+                  <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium text-rose-800">{errorMessage}</p>
                 </motion.div>
               )}
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   {getTranslation('auth.email1') || 'Email Address'}
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-slate-400" />
                   </div>
                   <input
                     {...register('email', {
@@ -165,12 +160,12 @@ export const ForgotPassword: React.FC = () => {
                       },
                     })}
                     type="email"
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
+                    className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                     placeholder={getTranslation('auth.emailPlaceholder') || 'you@example.com'}
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-1.5 text-xs text-red-600 font-medium">
+                  <p className="mt-1.5 text-xs text-rose-600 font-medium">
                     {Array.isArray(errors.email.message) ? errors.email.message[0] : errors.email.message}
                   </p>
                 )}
@@ -180,19 +175,26 @@ export const ForgotPassword: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-xs hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
                 >
-                  {isLoading ? getTranslation('common.loading2') || 'Sending...' : getTranslation('auth.forgotPassword.sendResetLink') || 'Send Reset Link'}
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Sending link...</span>
+                    </div>
+                  ) : (
+                    getTranslation('auth.forgotPassword.sendResetLink') || 'Send Reset Link'
+                  )}
                 </button>
               </div>
 
               <div className="text-center pt-2">
                 <Link
                   to="/login"
-                  className="inline-flex items-center text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                  className="inline-flex items-center text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1.5" />
-                  {getTranslation('auth.forgotPassword.backToLogin') || 'Back to Sign In'}
+                  <span>{getTranslation('auth.forgotPassword.backToLogin') || 'Back to Sign In'}</span>
                 </Link>
               </div>
             </form>
@@ -202,3 +204,5 @@ export const ForgotPassword: React.FC = () => {
     </div>
   );
 };
+
+export default ForgotPassword;

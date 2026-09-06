@@ -243,11 +243,15 @@ Wolaita situated in the mid highland areas of southern Ethiopia on the escarpmen
 'culture.cottages.legamaa': 'Legamaa meshwaa house',
 
 // About page
+'about.tagline': "DISCOVER ETHIOPIA'S CULTURAL HEART",
+'about.headingStart': 'About',
+'about.headingHighlight': 'Wolaita Tours',
 'about.title': 'About Wolaita Tours',
 'about.description': 'We are dedicated to showcasing the rich cultural heritage and natural beauty of Wolaita Zone, Ethiopia.',
 'about.missionTitle': 'Our Mission',
 'about.missionText': 'To provide authentic, sustainable, and memorable tourism experiences that connect visitors with the vibrant culture, traditions, and landscapes of Wolaita Zone while supporting local communities and preserving our heritage.',
 'about.whyChooseUsTitle': 'Why Choose Us',
+'about.whyChooseUsSubtitle': 'Experience Wolaita with guided expertise, deep rooted local pride, and genuine community hospitality.',
 'about.whyChooseUsItems': [
   'Expert local guides with deep cultural knowledge',
   'Authentic experiences with local communities',
@@ -255,10 +259,13 @@ Wolaita situated in the mid highland areas of southern Ethiopia on the escarpmen
   'Multilingual support (English and Amharic)',
   'Safety and security guaranteed'
 ],
-'about.tourismTitle': 'Tourism Growth in Wolaita (2020-2024)',
-'about.totalTourists': 'Total Tourists (2020-2024)',
-'about.foreignTourists': 'Foreign Tourists (2020-2024)',
-'about.localTourists': 'Local Tourists (2020-2024)',
+'about.faqPrompt': 'Have specific questions?',
+'about.faqButton': 'Read Tour FAQs →',
+'about.tourismTitle': 'Tourism Growth in Wolaita (2020–2024)',
+'about.tourismSubtitle': 'Demonstrating our continuous commitment to sustainable regional visitor growth',
+'about.totalTourists': 'Total Tourists (2020–2024)',
+'about.foreignTourists': 'Foreign Tourists (2020–2024)',
+'about.localTourists': 'Local Tourists (2020–2024)',
 'about.chartTitle': 'Annual Tourist Numbers (Local vs. Foreign)',
 
 // Contact page
@@ -597,11 +604,15 @@ Wolaita situated in the mid highland areas of southern Ethiopia on the escarpmen
   'culture.dance.intro': 'የወላይታ ሕዝብ ከንቱና ምቹ ባህላዊ ዳንሶች ያላቸው በበዓላት፣ በሰርስሮችና በማኅበራዊ መንክሮች የሚከናወኑ ናቸው።',
 
   // About page
+  'about.tagline': 'የኢትዮጵያን የባህል ማዕከል ያስሱ',
+  'about.headingStart': 'ስለ',
+  'about.headingHighlight': 'ወላይታ ቱርስ',
   'about.title': 'ስለ ወላይታ ቱርስ',
   'about.description': 'የኢትዮጵያ ወላይታ ዞን የባህል ቅርሶች እና ተፈጥሯዊ ውበት ለማሳየት ቁርጠኛ ነን።',
   'about.missionTitle': 'ተልእኳችን',
   'about.missionText': 'ከአካባቢው ማህበረሰብ ጋር በመተባበር የባህላችንን ስርዓት ለመጠበቅ ሲቻል እንዲሁም የወላይታ ዞን ተፈጥሯዊ ውበት እና ባህል ለጎብኚዎች ተገኝነት ያለው ቆይታ እንዲኖረው እያሰብን ለጎብኝዎች ዘላቂ፣ አስታዋሽ እና እውነተኛ የቱሪዝም ልምድ እናቀርባለን።',
   'about.whyChooseUsTitle': 'ለምን እኛን መምረጥ ይገባል',
+  'about.whyChooseUsSubtitle': 'የወላይታን ልምድ በባለሙያ መሪነት፣ ጥልቅ የአካባቢ ኩራት እና እውነተኛ የማህበረሰብ መስተንግዶ ይለማመዱ።',
   'about.whyChooseUsItems': [
     'የአካባቢውን ባህል የሚያውቁ ብቃት ያላቸው የአካባቢ መሪዎች',
     'ከአካባቢው ማህበረሰብ ጋር የሚደረጉ እውነተኛ ልምዶች',
@@ -609,7 +620,10 @@ Wolaita situated in the mid highland areas of southern Ethiopia on the escarpmen
     'ብርቅና ያለው የቋንቋ ድጋፍ (እንግሊዝኛ እና አማርኛ)',
     'ደህንነት እና ጸጥታ የተጠበቀ'
   ],
+  'about.faqPrompt': 'ልዩ ጥያቄዎች አሉዎት?',
+  'about.faqButton': 'የጉዞ ተደጋጋሚ ጥያቄዎችን ይመልከቱ →',
   'about.tourismTitle': 'በወላይታ የቱሪዝም እድገት (2020-2024)',
+  'about.tourismSubtitle': 'ቀጣይነት ላለው የክልሉ ጎብኝዎች እድገት ያለንን የማያወላውል ቁርጠኝነት የሚያሳይ',
   'about.totalTourists': 'ጠቅላላ ጎብኝዎች (2020-2024)',
   'about.foreignTourists': 'የውጭ ጎብኝዎች (2020-2024)',
   'about.localTourists': 'የአገር ውስጥ ጎብኝዎች (2020-2024)',

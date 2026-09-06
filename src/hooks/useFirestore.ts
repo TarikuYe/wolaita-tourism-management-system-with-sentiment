@@ -118,14 +118,12 @@ export const useFirestore = <T>(options: FirestoreHookOptions<T>) => {
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       });
-      toast.success('Document added successfully');
       return docRef.id;
     } catch (err: any) {
-      toast.error('Failed to add document');
+      console.error('Failed to add document:', err);
       throw err;
     }
   };
-  
 
   const updateDocument = async (id: string, data: Partial<T>) => {
     try {
@@ -133,9 +131,8 @@ export const useFirestore = <T>(options: FirestoreHookOptions<T>) => {
         ...data,
         updatedAt: Timestamp.now(),
       });
-      toast.success('Document updated successfully');
     } catch (err: any) {
-      toast.error('Failed to update document');
+      console.error('Failed to update document:', err);
       throw err;
     }
   };
@@ -143,9 +140,8 @@ export const useFirestore = <T>(options: FirestoreHookOptions<T>) => {
   const deleteDocument = async (collectionName: string, id: string) => {
     try {
       await deleteDoc(doc(db, collectionName, id));
-      toast.success('Document deleted successfully');
     } catch (err: any) {
-      toast.error('Failed to delete document');
+      console.error('Failed to delete document:', err);
       throw err;
     }
   };

@@ -31,8 +31,8 @@ import { TourDetail } from './pages/TourDetail';
 import TouristProfile from './pages/Profile/TouristProfile';
 import { ForgotPassword } from './components/auth/ForgotPassword';
 import { VerifyEmail } from './pages/Auth/VerifyEmail';
-import { ContactForm } from './components/ContactForm';
-import { Users, Heart, Shield, Globe, Award } from 'lucide-react';
+import { About } from './pages/About';
+import { Contact } from './pages/Contact';
 
 // Improved ProtectedRoute with better loading state
 const ProtectedRoute: React.FC<{ 
@@ -106,23 +106,6 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   return <>{children}</>;
-};
-
-const AnimatedCounter: React.FC<{ from: number; to: number; duration: number }> = ({ from, to, duration }) => {
-  const [count, setCount] = React.useState(from);
-
-  React.useEffect(() => {
-    const startTime = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / (duration * 1000), 1);
-      setCount(Math.floor(from + progress * (to - from)));
-      if (progress === 1) clearInterval(timer);
-    }, 16);
-    return () => clearInterval(timer);
-  }, [from, to, duration]);
-  
-  return <span>{count.toLocaleString()}</span>;
 };
 
 const AppContent: React.FC = () => {
@@ -248,202 +231,10 @@ const AppContent: React.FC = () => {
             <Route path="/payment/callback" element={<PaymentCallback />} />
 
             {/* About Page */}
-            <Route path="/about" element={
-              <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-6xl mx-auto">
-                  {/* Header Section */}
-                  <div className="text-center mb-12">
-                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                    {t('about.title')}
-                  </h1>
-                    <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                    {t('about.description')}
-                  </p>
-                  </div>
-
-                  {/* Mission Section */}
-                  <div className="bg-white rounded-xl shadow-lg p-8 md:p-10 mb-8">
-                    <div className="max-w-4xl mx-auto">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">
-                      {t('about.missionTitle')}
-                    </h2>
-                      <p className="text-lg text-gray-700 leading-relaxed text-center">
-                      {t('about.missionText')}
-                    </p>
-                    </div>
-                  </div>
-
-                  {/* Why Choose Us Section */}
-                  <div className="bg-white rounded-xl shadow-lg p-8 md:p-10 mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-                      {t('about.whyChooseUsTitle')}
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {(t('about.whyChooseUsItems') as string[]).map((item, index) => {
-                        const icons = [
-                          <Users className="h-8 w-8" key="users" />,
-                          <Heart className="h-8 w-8" key="heart" />,
-                          <Award className="h-8 w-8" key="award" />,
-                          <Globe className="h-8 w-8" key="globe" />,
-                          <Shield className="h-8 w-8" key="shield" />,
-                        ];
-                        const iconBgColors = [
-                          'bg-amber-100 text-amber-700',
-                          'bg-red-100 text-red-700',
-                          'bg-blue-100 text-blue-700',
-                          'bg-green-100 text-green-700',
-                          'bg-purple-100 text-purple-700',
-                        ];
-                        return (
-                          <div
-                            key={index}
-                            className="group relative bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 hover:shadow-2xl hover:border-amber-300 transition-all duration-300 hover:-translate-y-2"
-                          >
-                            <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4 ${iconBgColors[index] || iconBgColors[0]} shadow-sm`}>
-                              {icons[index] || icons[0]}
-                            </div>
-                            <p className="text-gray-700 leading-relaxed font-medium">
-                              {item}
-                            </p>
-                            <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500 opacity-0 group-hover:opacity-5 rounded-bl-full transition-opacity duration-300"></div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tourism Statistics Section */}
-                  <div className="bg-white rounded-xl shadow-lg p-8 md:p-10">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-                      {t('about.tourismTitle')}
-                    </h2>
-
-                    {/* Summary Cards / Animated Counters */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-gradient-to-br from-amber-100 to-amber-200 p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                        <div className="text-center">
-                          <p className="text-lg font-semibold text-gray-700 mb-3">
-                          {t('about.totalTourists')}
-                        </p>
-                          <p className="text-4xl font-bold text-amber-800">
-                          <AnimatedCounter from={0} to={580 + 890 + 1060 + 1250 + 1380} duration={2} />+
-                        </p>
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                        <div className="text-center">
-                          <p className="text-lg font-semibold text-gray-700 mb-3">
-                          {t('about.foreignTourists')}
-                        </p>
-                          <p className="text-4xl font-bold text-blue-800">
-                          <AnimatedCounter from={0} to={120 + 240 + 300 + 380 + 400} duration={2} />+
-                        </p>
-                        </div>
-                      </div>
-                      <div className="bg-gradient-to-br from-green-100 to-green-200 p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                        <div className="text-center">
-                          <p className="text-lg font-semibold text-gray-700 mb-3">
-                          {t('about.localTourists')}
-                        </p>
-                          <p className="text-4xl font-bold text-green-800">
-                          <AnimatedCounter from={0} to={460 + 650 + 760 + 870 + 980} duration={2} />+
-                        </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            } />
+            <Route path="/about" element={<About />} />
 
             {/* Contact Page */}
-            <Route path="/contact" element={
-              <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-4xl mx-auto">
-                  <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                      {t('contact.title')}
-                    </h1>
-                    <p className="text-xl text-gray-600">
-                      {t('contact.subtitle')}
-                    </p>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-8">
-                    <ContactForm />
-                    <div className="bg-white rounded-lg shadow-lg p-8">
-                      <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-                        {t('contact.infoTitle')}
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {t('contact.addressLabel')}
-                          </h3>
-                          <p className="text-gray-600">Sodo, Wolaita Zone, Ethiopia</p>
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {t('contact.phoneLabel')}
-                          </h3>
-                          <p className="text-gray-600">+251 465 510 615</p>
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {t('contact.emailLabel')}
-                          </h3>
-                          <p className="text-gray-600">tarikunegesa19@gmail.com</p>
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {t('contact.hoursLabel')}
-                          </h3>
-                          <p className="text-gray-600">
-                            {t('contact.hours.weekdays')}<br />
-                            {t('contact.hours.saturday')}<br />
-                            {t('contact.hours.sunday')}
-                          </p>
-                        </div>
-                        <div>
-                          <h2 className="text-2xl font-semibold text-gray-900 mt-10 mb-4">
-                            {t('contact.safetyTitle')}
-                          </h2>
-                          <div className="space-y-4 text-gray-600">
-                            <div>
-                              <h3 className="font-medium text-gray-900">
-                                {t('contact.emergency.police')}
-                              </h3>
-                              <p>{t('contact.emergency.phoneLabel')}: +251 465 510 146</p>
-                              <p>{t('contact.emergency.locationLabel')}: {t('contact.emergency.policeLocation')}</p>
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900">
-                                {t('contact.emergency.hospital')}
-                              </h3>
-                              <p>{t('contact.emergency.phoneLabel')}: +251 461 801 573</p>
-                              <p>{t('contact.emergency.locationLabel')}: {t('contact.emergency.hospitalLocation')}</p>
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900">
-                                {t('contact.emergency.clinic')}
-                              </h3>
-                              <p>{t('contact.emergency.phoneLabel')}: +251 465 510 107</p>
-                              <p>{t('contact.emergency.locationLabel')}: {t('contact.emergency.clinicLocation')}</p>
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900">
-                                {t('contact.emergency.redcross')}
-                              </h3>
-                              <p>{t('contact.emergency.phoneLabel')}: 952 (Toll-Free)</p>
-                              <p>{t('contact.emergency.serviceLabel')}: {t('contact.emergency.redcrossService')}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            } />
+            <Route path="/contact" element={<Contact />} />
 
             {/* Fallback 404 route for unknown routes including /admin/login */}
             <Route path="*" element={<NotFound />} />

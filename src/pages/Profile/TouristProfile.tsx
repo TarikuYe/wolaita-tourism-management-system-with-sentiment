@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../config/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { CalendarDays, Mail, Phone, Globe, Camera, Save, X } from 'lucide-react';
+import { CalendarDays, Mail, Phone, Globe, Camera, Save, X, User, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface UserData {
@@ -16,7 +16,7 @@ interface UserData {
   role?: string;
 }
 
-const TouristProfile = () => {
+export const TouristProfile: React.FC = () => {
   const { currentUser, updatePassword, reauthenticate } = useAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -83,7 +83,6 @@ const TouristProfile = () => {
         updatedAt: new Date(),
       });
 
-      // Update local state
       setUserData(prev => prev ? { 
         ...prev, 
         name: profileForm.name,
@@ -106,13 +105,11 @@ const TouristProfile = () => {
 
     const file = e.target.files[0];
     
-    // Validate file type and size
     if (!file.type.startsWith('image/')) {
       setMessage({ type: 'error', text: 'Please select an image file (JPEG, PNG, etc.)' });
       return;
     }
 
-    // Check file size (limit to 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setMessage({ type: 'error', text: 'Image size should be less than 5MB' });
       return;
@@ -123,19 +120,11 @@ const TouristProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      console.log('Starting Cloudinary upload...', file.name);
-      console.log('Cloudinary Config:', { cloudName, uploadPreset });
-
-      // Create form data for Cloudinary upload
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
-      
-      // Only include allowed parameters for unsigned upload
       formData.append('folder', 'profile-images');
-      // Remove transformation parameter as it's not allowed in unsigned uploads
 
-      // Upload to Cloudinary
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         {
@@ -145,23 +134,13 @@ const TouristProfile = () => {
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Cloudinary upload failed:', errorText);
         throw new Error(`Upload failed with status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Cloudinary upload successful:', data);
-
-      // Apply transformations to the URL after upload
-      // This creates a new URL with transformations without re-uploading
-      const originalUrl = data.secure_url;
       const publicId = data.public_id;
-      
-      // Create transformed URL - resize to 500x500 with face detection and fill crop
       const transformedUrl = `https://res.cloudinary.com/${cloudName}/image/upload/w_500,h_500,c_fill/${publicId}`;
 
-      // Update user document in Firestore with both original and transformed URLs
       const userRef = doc(db, 'users', currentUser.id);
       await updateDoc(userRef, {
         photoURL: transformedUrl,
@@ -169,7 +148,6 @@ const TouristProfile = () => {
         updatedAt: new Date(),
       });
 
-      // Update local state
       setUserData(prev => prev ? { 
         ...prev, 
         photoURL: transformedUrl,
@@ -177,38 +155,19 @@ const TouristProfile = () => {
       } : null);
 
       setMessage({ type: 'success', text: 'Profile image updated successfully!' });
-      
-      // Reset the file input
       e.target.value = '';
 
     } catch (error: any) {
       console.error('Error uploading image to Cloudinary:', error);
-      
       let errorMessage = 'Failed to upload profile image';
-      if (error.message.includes('Failed to fetch')) {
+      if (error.message?.includes('Failed to fetch')) {
         errorMessage = 'Network error. Please check your internet connection.';
-      } else if (error.message.includes('status: 400')) {
-        errorMessage = 'Invalid image file. Please try another image.';
-      } else if (error.message.includes('status: 401')) {
-        errorMessage = 'Cloudinary authentication failed. Please check your configuration.';
-      } else if (error.message.includes('status: 404')) {
-        errorMessage = 'Cloudinary cloud name not found. Please check your configuration.';
       }
-      
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setIsLoading(false);
       setUploadProgress(0);
     }
-  };
-
-  // Alternative approach: Apply transformations on-the-fly when displaying images
-  const getOptimizedImageUrl = (url: string) => {
-    if (!url || !url.includes('cloudinary.com')) return url;
-    
-    // If it's already a Cloudinary URL, you can apply transformations here
-    // For now, we'll return the URL as is since we're applying transformations during upload
-    return url;
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
@@ -228,10 +187,7 @@ const TouristProfile = () => {
     setIsLoading(true);
 
     try {
-      // Reauthenticate user with old password
       await reauthenticate(passwordForm.oldPassword);
-      
-      // Update password
       await updatePassword(passwordForm.newPassword);
       
       setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
@@ -261,12 +217,9 @@ const TouristProfile = () => {
     }
   };
 
-  // Format joined date based on your timestamp structure
   const getJoinedDate = () => {
     if (!userData?.createdAt) return 'N/A';
-    
     try {
-      // Handle different timestamp formats
       if (userData.createdAt.toDate) {
         return userData.createdAt.toDate().toDateString();
       } else if (userData.createdAt instanceof Date) {
@@ -281,205 +234,266 @@ const TouristProfile = () => {
   };
 
   if (!userData) {
-    return <div className="text-center mt-10">Loading profile...</div>;
+    return (
+      <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-14 w-14 border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Loading profile...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-4xl mx-auto p-4 space-y-6"
-    >
-      <h1 className="text-2xl font-bold mb-4">My Profile</h1>
-
-      {message.text && (
-        <div
-          className={`p-4 rounded-lg ${
-            message.type === 'error' 
-              ? 'bg-red-100 text-red-700 border border-red-200' 
-              : 'bg-green-100 text-green-700 border border-green-200'
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl shadow p-6 space-y-6">
-        {/* Profile Details Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Image */}
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative">
-              <img
-                src={getOptimizedImageUrl(userData.profileImage || userData.photoURL || '/avatar.png')}
-                alt="Profile"
-                className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-              />
-              <label 
-                htmlFor="profile-image" 
-                className={`absolute bottom-2 right-2 p-2 rounded-full cursor-pointer transition-colors ${
-                  isLoading 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                <Camera size={16} />
-                <input
-                  id="profile-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  disabled={isLoading}
-                />
-              </label>
-              {isLoading && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                  <div className="text-white text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                    <p className="text-xs">Uploading...</p>
-                    {uploadProgress > 0 && (
-                      <p className="text-xs">{Math.round(uploadProgress)}%</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500">
-                {isLoading ? 'Uploading...' : 'Click camera icon to update profile image'}
-              </p>
-            </div>
+    <div className="min-h-screen bg-[#faf8f5] py-12 px-4 sm:px-6 lg:px-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-4xl mx-auto space-y-8"
+      >
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-50 border border-orange-200/80 text-orange-600 text-xs font-semibold tracking-wider uppercase mb-4 shadow-xs">
+            <User className="w-3.5 h-3.5" />
+            <span>Tourist Profile</span>
           </div>
+          <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+            My <span className="text-orange-500">Account Settings</span>
+          </h1>
+          <p className="mt-3 text-slate-600 text-sm md:text-base">
+            Manage your personal profile, contact information, and security preferences.
+          </p>
+        </div>
 
-          {/* Profile Information */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Profile Details</h2>
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+        {/* Global Feedback Message */}
+        {message.text && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-4 rounded-2xl flex items-start space-x-3 border text-sm font-medium ${
+              message.type === 'error' 
+                ? 'bg-rose-50 text-rose-800 border-rose-200' 
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            }`}
+          >
+            {message.type === 'error' ? (
+              <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+            ) : (
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+            )}
+            <div>{message.text}</div>
+          </motion.div>
+        )}
+
+        {/* Profile Card */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8 sm:p-10 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            {/* Profile Avatar Column */}
+            <div className="flex flex-col items-center text-center space-y-4 pt-2">
+              <div className="relative group">
+                <img
+                  src={userData.profileImage || userData.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
+                  alt="Profile"
+                  className="w-36 h-36 rounded-full object-cover border-4 border-orange-100 shadow-sm"
+                />
+                <label 
+                  htmlFor="profile-image" 
+                  className={`absolute bottom-1 right-1 p-3 rounded-full cursor-pointer transition-all shadow-md ${
+                    isLoading 
+                      ? 'bg-slate-400 cursor-not-allowed text-white' 
+                      : 'bg-orange-500 hover:bg-orange-600 text-white hover:scale-105'
+                  }`}
+                  title="Update profile picture"
                 >
-                  Edit Profile
-                </button>
-              ) : (
-                <div className="space-x-2">
-                  <button
-                    onClick={handleProfileUpdate}
+                  <Camera size={18} />
+                  <input
+                    id="profile-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
                     disabled={isLoading}
-                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-                  >
-                    <Save size={16} className="inline mr-2" />
-                    Save
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    disabled={isLoading}
-                    className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
-                  >
-                    <X size={16} className="inline mr-2" />
-                    Cancel
-                  </button>
-                </div>
-              )}
+                  />
+                </label>
+                {isLoading && (
+                  <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-xs">
+                    <div className="text-white text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent mx-auto mb-2"></div>
+                      <p className="text-xs font-semibold">Uploading...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">{userData.name || 'Tourist Member'}</h3>
+                <p className="text-xs text-slate-500 font-medium capitalize mt-0.5">{userData.role || 'Tourist'}</p>
+                <p className="text-xs text-slate-400 mt-2">
+                  Click camera icon to change photo
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {/* Email (non-editable) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <Mail size={16} className="inline mr-2" />
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={userData.email || ''}
-                  disabled
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                />
-              </div>
-
-              {/* Name (editable) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={profileForm.name}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+            {/* Profile Information Column */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Personal Details</h2>
+                  <p className="text-xs text-slate-500">Your profile details visible during tour bookings</p>
+                </div>
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all shadow-xs hover:shadow-md"
+                  >
+                    Edit Profile
+                  </button>
                 ) : (
-                  <div className="p-3 border border-gray-300 rounded-lg bg-white">
-                    {userData.name || 'Not provided'}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleProfileUpdate}
+                      disabled={isLoading}
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all shadow-xs hover:shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Save size={14} />
+                      <span>Save</span>
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      disabled={isLoading}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <X size={14} />
+                      <span>Cancel</span>
+                    </button>
                   </div>
                 )}
               </div>
 
-              {/* Phone (editable) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <Phone size={16} className="inline mr-2" />
-                  Phone Number
-                </label>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                ) : (
-                  <div className="p-3 border border-gray-300 rounded-lg bg-white">
-                    {userData.phone || 'Not provided'}
+              <div className="space-y-4">
+                {/* Email (Readonly) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input
+                      type="email"
+                      value={userData.email || ''}
+                      disabled
+                      className="block w-full pl-11 pr-4 py-3 bg-slate-100/80 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-500 cursor-not-allowed"
+                    />
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Nationality (editable) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <Globe size={16} className="inline mr-2" />
-                  Nationality
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={profileForm.nationality}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, nationality: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                ) : (
-                  <div className="p-3 border border-gray-300 rounded-lg bg-white">
-                    {userData.nationality || 'Not provided'}
+                {/* Full Name */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Full Name
+                  </label>
+                  {isEditing ? (
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={profileForm.name}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                        className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                        placeholder="Enter full name"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-medium text-slate-800">
+                      {userData.name || 'Not provided'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Phone Number
+                  </label>
+                  {isEditing ? (
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Phone className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input
+                        type="tel"
+                        value={profileForm.phone}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                        className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                        placeholder="+251 9XX XXX XXX"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-medium text-slate-800">
+                      {userData.phone || 'Not provided'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Nationality */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Nationality
+                  </label>
+                  {isEditing ? (
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <Globe className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={profileForm.nationality}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, nationality: e.target.value }))}
+                        className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                        placeholder="e.g. Ethiopian, American, German"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-medium text-slate-800">
+                      {userData.nationality || 'Not provided'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Joined Date */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Member Since
+                  </label>
+                  <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-medium text-slate-600">
+                    <CalendarDays className="h-4 w-4 text-orange-500" />
+                    <span>{getJoinedDate()}</span>
                   </div>
-                )}
-              </div>
-
-              {/* Joined Date (non-editable) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <CalendarDays size={16} className="inline mr-2" />
-                  Joined Date
-                </label>
-                <div className="p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600">
-                  {getJoinedDate()}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Password Change Section */}
-        <div className="border-t pt-6">
-          <h2 className="text-xl font-semibold mb-4">Change Password</h2>
-          <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+        {/* Change Password Card */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8 sm:p-10 space-y-6">
+          <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+            <div className="w-10 h-10 rounded-2xl bg-orange-100/80 text-orange-600 flex items-center justify-center border border-orange-200/60">
+              <Lock className="h-5 w-5" />
+            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <h2 className="text-xl font-extrabold text-slate-900">Security & Password</h2>
+              <p className="text-xs text-slate-500">Update your account password to maintain security</p>
+            </div>
+          </div>
+
+          <form onSubmit={handlePasswordChange} className="space-y-4 max-w-lg">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Current Password
               </label>
               <input
@@ -487,13 +501,13 @@ const TouristProfile = () => {
                 value={passwordForm.oldPassword}
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, oldPassword: e.target.value }))}
                 required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your current password"
+                className="block w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                placeholder="Enter current password"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 New Password
               </label>
               <input
@@ -502,13 +516,13 @@ const TouristProfile = () => {
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                 required
                 minLength={6}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter new password"
+                className="block w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+                placeholder="Enter new password (min. 6 characters)"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Confirm New Password
               </label>
               <input
@@ -517,22 +531,31 @@ const TouristProfile = () => {
                 onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                 required
                 minLength={6}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                 placeholder="Confirm new password"
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-            >
-              {isLoading ? 'Updating Password...' : 'Change Password'}
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm py-3 px-6 rounded-xl transition-all shadow-xs hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Updating Password...</span>
+                  </>
+                ) : (
+                  <span>Update Password</span>
+                )}
+              </button>
+            </div>
           </form>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 };
 

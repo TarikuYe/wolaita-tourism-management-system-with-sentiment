@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { motion } from 'framer-motion';
@@ -26,7 +26,6 @@ export const Login: React.FC = () => {
   // Redirect authenticated users immediately
   useEffect(() => {
     if (currentUser && !loading) {
-      // Align with the role based redirects used in AppContent
       const destination =
         currentUser.role === 'admin'
           ? '/dashboard'
@@ -45,7 +44,6 @@ export const Login: React.FC = () => {
     setErrorMessage(null);
     try {
       await login(data.email, data.password, 'public');
-      // Don't reset isSubmitting here - let the redirect happen
     } catch (error: any) {
       console.error('Login error:', error);
       setErrorMessage(error.message || 'Login failed. Please check your credentials.');
@@ -53,18 +51,14 @@ export const Login: React.FC = () => {
     }
   };
 
-  // Show loading screen if:
-  // 1. AuthContext is still loading (checking initial auth state)
-  // 2. User is submitting login form
-  // 3. We have a currentUser (success) while redirect effect runs
   const showLoading = loading || (isSubmitting && !errorMessage) || !!currentUser;
 
   if (showLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center">
+      <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-amber-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">
+          <div className="animate-spin rounded-full h-14 w-14 border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium text-base">
             {isSubmitting ? t('auth.login.processing') : t('common.loading')}
           </p>
         </div>
@@ -73,34 +67,34 @@ export const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="max-w-md w-full space-y-8"
       >
-        <div>
-          <div className="mx-auto h-12 w-12 bg-amber-600 rounded-full flex items-center justify-center">
-            <Lock className="h-6 w-6 text-white" />
+        <div className="text-center">
+          <div className="mx-auto h-14 w-14 bg-orange-100/80 border border-orange-200/80 text-orange-600 rounded-2xl flex items-center justify-center shadow-xs mb-4">
+            <Lock className="h-7 w-7" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
             {t('auth.login.title')}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-sm text-slate-600">
             {t('auth.login.subtitle')}
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8 sm:p-10">
           {errorMessage && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 rounded-xl flex items-start space-x-3 border bg-red-50 border-red-200 text-red-800"
+              className="mb-6 p-4 rounded-2xl flex items-start space-x-3 border bg-rose-50 border-rose-200 text-rose-800 text-sm"
             >
-              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-red-600" />
-              <div className="text-sm font-medium">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-rose-600" />
+              <div className="font-medium">
                 {errorMessage}
               </div>
             </motion.div>
@@ -110,22 +104,22 @@ export const Login: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`mb-6 p-4 rounded-xl flex items-start space-x-3 border ${
+              className={`mb-6 p-4 rounded-2xl flex items-start space-x-3 border text-sm ${
                 message === 'verified'
-                  ? 'bg-green-50 border-green-200 text-green-800'
-                  : 'bg-amber-50 border-amber-200 text-amber-800'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-orange-50 border-orange-200 text-orange-800'
               }`}
             >
               <AlertCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                message === 'verified' ? 'text-green-600' : 'text-amber-600'
+                message === 'verified' ? 'text-emerald-600' : 'text-orange-600'
               }`} />
-              <div className="text-sm">
+              <div>
                 {message === 'verified' ? (
                   <p className="font-medium">Your email has been verified successfully! You may now sign in.</p>
                 ) : message === 'registered' ? (
                   <div>
-                    <p className="font-semibold">Account created successfully!</p>
-                    <p className="mt-1 text-xs text-amber-700">Please check your inbox (and Spam/Junk folder) to verify your email address.</p>
+                    <p className="font-bold">Account created successfully!</p>
+                    <p className="mt-1 text-xs text-orange-700">Please check your inbox (and Spam/Junk folder) to verify your email address.</p>
                   </div>
                 ) : (
                   <p className="font-medium">{message}</p>
@@ -133,14 +127,15 @@ export const Login: React.FC = () => {
               </div>
             </motion.div>
           )}
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+
+          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 {t('auth.email')}
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   {...register('email', {
@@ -151,22 +146,22 @@ export const Login: React.FC = () => {
                     },
                   })}
                   type="email"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                  className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                   placeholder="Enter your email"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1.5 text-xs text-rose-600 font-medium">{errors.email.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 {t('auth.password')}
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   {...register('password', {
@@ -177,21 +172,21 @@ export const Login: React.FC = () => {
                     },
                   })}
                   type={showPassword ? 'text' : 'password'}
-                  className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                  className="block w-full pl-11 pr-11 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                   placeholder="Enter your password"
                 />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center">
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-slate-400 hover:text-slate-600"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1.5 text-xs text-rose-600 font-medium">{errors.password.message}</p>
               )}
             </div>
 
@@ -199,31 +194,35 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-xs hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm"
               >
                 {isSubmitting ? t('common.loading') : t('auth.submit')}
               </button>
             </div>
 
-            <div className="text-center space-y-2">
-  <Link
-    to={message ? `/register?message=${encodeURIComponent(message)}` : '/register'}
-    className="font-medium text-amber-600 hover:text-amber-500"
-  >
-    {t('auth.switchToRegister')}
-  </Link>
-  <div>
-    <Link
-      to="/forgot-password"
-      className="font-medium text-amber-600 hover:text-amber-500 text-sm"
-    >
-      {t('auth.forgotPassword.link')}
-    </Link>
-  </div>
-</div>
+            <div className="text-center space-y-2 pt-2 text-sm">
+              <div>
+                <Link
+                  to={message ? `/register?message=${encodeURIComponent(message)}` : '/register'}
+                  className="font-bold text-orange-600 hover:text-orange-700"
+                >
+                  {t('auth.switchToRegister')}
+                </Link>
+              </div>
+              <div>
+                <Link
+                  to="/forgot-password"
+                  className="font-medium text-slate-500 hover:text-slate-700 text-xs"
+                >
+                  {t('auth.forgotPassword.link')}
+                </Link>
+              </div>
+            </div>
           </form>
         </div>
       </motion.div>
     </div>
   );
 };
+
+export default Login;

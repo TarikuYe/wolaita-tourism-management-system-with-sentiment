@@ -27,7 +27,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({ tourId, size = 5
     e.stopPropagation();
 
     if (!currentUser || !currentUser.id) {
-        toast.error('You must be logged in to add favorites.');
+        toast.error('You must be logged in to add favorites.', { id: 'fav-auth-error' });
         return;
     }
 
@@ -36,7 +36,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({ tourId, size = 5
         const favorite = favorites.find((fav: any) => fav.tourId === tourId);
         if (favorite) {
           await deleteDocument('favorites', favorite.id);
-          toast.success('Removed from favorites!');
+          toast.success('Removed from favorites!', { id: `fav-${tourId}` });
         }
       } else {
         const favoriteData = {
@@ -45,11 +45,11 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({ tourId, size = 5
           createdAt: Timestamp.now(),
         };
         await addDoc(collection(db, 'favorites'), favoriteData);
-        toast.success('Added to favorites!');
+        toast.success('Added to favorites!', { id: `fav-${tourId}` });
       }
     } catch (error) {
         console.error("Error toggling favorite:", error);
-        toast.error('Failed to update favorites.');
+        toast.error('Failed to update favorites.', { id: `fav-err-${tourId}` });
     }
   };
 

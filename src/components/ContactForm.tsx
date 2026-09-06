@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Mail, User, MessageSquare, Send, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { Mail, User, MessageSquare, Send, CheckCircle, Loader, MessageCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { contactService, ContactFormData } from '../services/contactService';
 import toast from 'react-hot-toast';
@@ -22,9 +22,8 @@ export const ContactForm: React.FC = () => {
       if (response.success) {
         setIsSuccess(true);
         toast.success(response.message || 'Your message has been sent successfully!');
-        reset(); // Clear the form
+        reset();
         
-        // Reset success state after 5 seconds
         setTimeout(() => {
           setIsSuccess(false);
         }, 5000);
@@ -41,34 +40,37 @@ export const ContactForm: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-        {t('contact.formTitle')}
-      </h2>
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8 sm:p-10">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-11 h-11 rounded-xl bg-orange-100/70 border border-orange-200/60 flex items-center justify-center text-orange-600 shadow-xs">
+          <MessageCircle className="w-5 h-5" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900">
+          {t('contact.formTitle')}
+        </h2>
+      </div>
       
       {isSuccess && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md"
+          className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3"
         >
-          <div className="flex items-center">
-            <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-            <p className="text-sm font-medium text-green-800">
-              Your message has been sent successfully! We will get back to you soon.
-            </p>
-          </div>
+          <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+          <p className="text-sm font-medium text-emerald-900">
+            Your message has been sent successfully! We will get back to you soon.
+          </p>
         </motion.div>
       )}
 
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
             {t('contact.nameLabel')}
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <User className="h-5 w-5 text-gray-400" />
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <User className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('name', {
@@ -84,22 +86,22 @@ export const ContactForm: React.FC = () => {
               })}
               type="text"
               id="name"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              placeholder="Enter your name"
+              className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+              placeholder="Enter your full name"
             />
           </div>
           {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+            <p className="mt-1.5 text-xs text-rose-600 font-medium">{errors.name.message}</p>
           )}
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
             {t('contact.emailLabel')}
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-gray-400" />
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Mail className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('email', {
@@ -111,22 +113,22 @@ export const ContactForm: React.FC = () => {
               })}
               type="email"
               id="email"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              placeholder="Enter your email"
+              className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
+              placeholder="Enter your email address"
             />
           </div>
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            <p className="mt-1.5 text-xs text-rose-600 font-medium">{errors.email.message}</p>
           )}
         </div>
 
         <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="message" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
             {t('contact.messageLabel')}
           </label>
           <div className="relative">
-            <div className="absolute top-3 left-3 pointer-events-none">
-              <MessageSquare className="h-5 w-5 text-gray-400" />
+            <div className="absolute top-3.5 left-3.5 pointer-events-none">
+              <MessageSquare className="h-5 w-5 text-slate-400" />
             </div>
             <textarea
               {...register('message', {
@@ -142,28 +144,28 @@ export const ContactForm: React.FC = () => {
               })}
               id="message"
               rows={4}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none"
-              placeholder="Enter your message"
+              className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors resize-none"
+              placeholder="How can we assist your trip to Wolaita?"
             />
           </div>
           {errors.message && (
-            <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
+            <p className="mt-1.5 text-xs text-rose-600 font-medium">{errors.message.message}</p>
           )}
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-3.5 rounded-xl font-bold transition-all shadow-xs hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
         >
           {isSubmitting ? (
             <>
-              <Loader className="h-5 w-5 animate-spin" />
+              <Loader className="h-4 w-4 animate-spin" />
               <span>Sending...</span>
             </>
           ) : (
             <>
-              <Send className="h-5 w-5" />
+              <Send className="h-4 w-4" />
               <span>{t('contact.sendButton')}</span>
             </>
           )}
@@ -172,4 +174,3 @@ export const ContactForm: React.FC = () => {
     </div>
   );
 };
-

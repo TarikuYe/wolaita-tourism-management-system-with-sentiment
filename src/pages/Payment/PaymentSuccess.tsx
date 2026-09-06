@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { CheckCircle, Download, Calendar, MapPin, Users, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Download, Calendar, MapPin, Users, AlertTriangle, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
 import { ChapaService } from '../../services/chapaService';
 import { doc, updateDoc, getDoc, query, collection, where, getDocs, Timestamp, limit } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -16,8 +16,11 @@ export const PaymentSuccess: React.FC = () => {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [error, setError] = useState<string>('');
+  const verifiedTxRef = useRef<string | null>(null);
+  const [isPopup, setIsPopup] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && Boolean(window.opener && !window.opener.closed);
+  });
 
-  // Retrieve transaction reference from multiple possible query parameters or storage
   const rawTxRef = 
     searchParams.get('tx_ref') ||
     searchParams.get('trx_ref') ||
@@ -29,7 +32,61 @@ export const PaymentSuccess: React.FC = () => {
   const [activeTxRef, setActiveTxRef] = useState<string | null>(rawTxRef);
   const statusParam = searchParams.get('status');
 
-  // Get dashboard route based on user role
+  // Handle popup window communication and auto-redirect of parent window
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.opener && !window.opener.closed) {
+        setIsPopup(true);
+        const tx = rawTxRef || sessionStorage.getItem('last_chapa_tx_ref') || localStorage.getItem('last_chapa_tx_ref');
+
+        if (statusParam === 'failed' || statusParam === 'canceled') {
+          try {
+            window.opener.postMessage({ type: 'PAYMENT_FAILED', message: 'Payment cancelled or failed' }, window.location.origin);
+          } catch (e) {
+            console.warn('Could not postMessage to opener:', e);
+          }
+          const timer = setTimeout(() => {
+            try { window.close(); } catch (e) {}
+          }, 1500);
+          return () => clearTimeout(timer);
+        }
+
+        // Notify opener window of success
+        try {
+          window.opener.postMessage({
+            type: 'PAYMENT_SUCCESS',
+            txRef: tx || undefined,
+            status: 'success'
+          }, window.location.origin);
+        } catch (e) {
+          console.warn('Could not postMessage to opener:', e);
+        }
+
+        // Redirect opener window to the main success page
+        try {
+          const targetUrl = `${window.location.origin}/payment/success?tx_ref=${encodeURIComponent(tx || '')}&status=success`;
+          window.opener.location.href = targetUrl;
+          window.opener.focus();
+        } catch (e) {
+          console.warn('Could not set opener location:', e);
+        }
+
+        // Auto close the popup after a brief moment
+        const closeTimer = setTimeout(() => {
+          try {
+            window.close();
+          } catch (e) {
+            console.warn('window.close() blocked by browser:', e);
+          }
+        }, 800);
+
+        return () => clearTimeout(closeTimer);
+      }
+    } catch (err) {
+      console.warn('Popup opener communication failed:', err);
+    }
+  }, [rawTxRef, statusParam]);
+
   const getDashboardRoute = useMemo(() => {
     if (!currentUser) return '/dashboard';
     switch (currentUser.role) {
@@ -47,12 +104,16 @@ export const PaymentSuccess: React.FC = () => {
   }, [currentUser]);
 
   const verifyPayment = useCallback(async (referenceToVerify: string) => {
+    if (verifiedTxRef.current === referenceToVerify) {
+      return;
+    }
+    verifiedTxRef.current = referenceToVerify;
+
     try {
       setIsVerifying(true);
       setError('');
       console.log('Verifying payment for tx_ref:', referenceToVerify);
 
-      // 1. First check if payment is already recorded/completed in Firestore
       let existingBookingId: string | null = null;
       try {
         const paymentsQuery = query(
@@ -64,23 +125,16 @@ export const PaymentSuccess: React.FC = () => {
         if (!paymentDocs.empty) {
           const paymentData = paymentDocs.docs[0].data();
           existingBookingId = paymentData.bookingId;
-
-          if (paymentData.status === 'completed' || paymentData.status === 'paid') {
-            console.log('Payment already marked as completed in database');
-          }
         }
       } catch (dbErr) {
         console.warn('Could not query payments collection:', dbErr);
       }
 
-      // 2. Verify with Chapa API
       let verificationSuccess = false;
       let bookingIdFromVerification: string | null = null;
 
       try {
         const verification = await ChapaService.verifyPayment(referenceToVerify);
-        console.log('Verification result from Chapa:', verification);
-
         if (verification.status === 'success' && verification.data?.status === 'success') {
           verificationSuccess = true;
           bookingIdFromVerification = verification.data.meta?.booking_id || null;
@@ -91,52 +145,31 @@ export const PaymentSuccess: React.FC = () => {
 
       const finalBookingId = bookingIdFromVerification || existingBookingId;
 
-      // 3. Update Firestore if verification succeeded or if already confirmed
       if (finalBookingId) {
         try {
-          // Update booking status
           await updateDoc(doc(db, 'bookings', finalBookingId), {
             paymentStatus: 'paid',
             paymentMethod: 'chapa',
             paymentReference: referenceToVerify,
             paymentVerifiedAt: Timestamp.now(),
             status: 'confirmed',
-            updatedAt: Timestamp.now()
+            updatedAt: Timestamp.now(),
           });
 
-          // Update payment record in Firestore
-          const paymentsQuery = query(
-            collection(db, 'payments'),
-            where('txRef', '==', referenceToVerify)
-          );
-          const paymentDocs = await getDocs(paymentsQuery);
-          if (!paymentDocs.empty) {
-            await updateDoc(paymentDocs.docs[0].ref, {
-              status: 'completed',
-              verifiedAt: Timestamp.now(),
-              updatedAt: Timestamp.now()
-            });
+          const bookingSnap = await getDoc(doc(db, 'bookings', finalBookingId));
+          if (bookingSnap.exists()) {
+            setBookingDetails({ id: bookingSnap.id, ...bookingSnap.data() });
           }
-
-          // Fetch full booking details to show receipt
-          const bookingDoc = await getDoc(doc(db, 'bookings', finalBookingId));
-          if (bookingDoc.exists()) {
-            setBookingDetails({ id: bookingDoc.id, ...bookingDoc.data() });
-          }
-        } catch (updateErr) {
-          console.error('Error updating booking in Firestore:', updateErr);
+        } catch (bookingErr) {
+          console.warn('Could not update booking status directly:', bookingErr);
         }
       }
 
-      // Clean storage reference
-      sessionStorage.removeItem('last_chapa_tx_ref');
-      localStorage.removeItem('last_chapa_tx_ref');
-
       setPaymentVerified(true);
-      toast.success('Payment confirmed successfully!');
+      toast.success('Payment verified successfully!', { id: `payment-verified-${referenceToVerify}` });
     } catch (err: any) {
-      console.error('Payment verification error:', err);
-      setError(err.message || 'Failed to verify payment');
+      console.error('Payment verification failed:', err);
+      setError(err.message || 'Payment verification failed. Please check your dashboard.');
     } finally {
       setIsVerifying(false);
     }
@@ -144,15 +177,14 @@ export const PaymentSuccess: React.FC = () => {
 
   useEffect(() => {
     const initVerification = async () => {
-      if (statusParam === 'failed') {
-        setError('Payment was not completed successfully');
+      if (statusParam === 'failed' || statusParam === 'canceled') {
+        setError('The transaction was cancelled or failed.');
         setIsVerifying(false);
         return;
       }
 
       let tx = rawTxRef;
 
-      // If no reference in URL/storage, search for user's most recent payment in Firestore
       if (!tx && currentUser?.id) {
         try {
           const paymentsQuery = query(
@@ -191,7 +223,6 @@ export const PaymentSuccess: React.FC = () => {
   const downloadReceipt = () => {
     if (!bookingDetails) return;
 
-    // Generate and download receipt
     const receiptData = {
       bookingId: bookingDetails.id,
       tourName: bookingDetails.tourName,
@@ -233,14 +264,47 @@ For support, contact: info@wolaitatours.com
     URL.revokeObjectURL(url);
   };
 
+  if (isPopup) {
+    return (
+      <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center p-6">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 max-w-sm w-full text-center space-y-5">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-100 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
+            <CheckCircle2 className="h-9 w-9" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Payment Successful!</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Redirecting you to your primary window...
+            </p>
+          </div>
+          <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-500 border-t-transparent mx-auto"></div>
+          <button
+            onClick={() => {
+              try {
+                if (window.opener && !window.opener.closed) {
+                  window.opener.focus();
+                }
+                window.close();
+              } catch (e) {
+                window.close();
+              }
+            }}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all shadow-xs"
+          >
+            Close & Return to Tours
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Verifying Payment</h2>
-          <p className="text-gray-600">Please wait while we confirm your payment...</p>
-          <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
+          <div className="animate-spin rounded-full h-14 w-14 border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Verifying Payment</h2>
+          <p className="text-slate-600 text-sm">Please wait while we confirm your payment transaction...</p>
         </div>
       </div>
     );
@@ -248,28 +312,29 @@ For support, contact: info@wolaitatours.com
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <AlertTriangle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Payment Verification Issue</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <div className="space-y-3">
-              {activeTxRef && (
-                <p className="text-sm text-gray-500 mb-4">
-                  If you believe this is an error and money was deducted from your account,
-                  please contact our support team with reference: <strong>{activeTxRef}</strong>
-                </p>
-              )}
+      <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center py-16 px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8 sm:p-10 space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertTriangle className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Payment Verification Issue</h2>
+            <p className="text-sm text-slate-600 leading-relaxed">{error}</p>
+            {activeTxRef && (
+              <p className="text-xs text-slate-400 bg-slate-50 py-2 px-3 rounded-xl border border-slate-100">
+                Transaction Reference: <strong className="text-slate-700">{activeTxRef}</strong>
+              </p>
+            )}
+            <div className="space-y-3 pt-2">
               <Link
                 to={getDashboardRoute}
-                className="block w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                className="w-full block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-xs"
               >
                 Go to Dashboard
               </Link>
               <Link
                 to="/tours"
-                className="block w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md font-medium hover:bg-gray-50 transition-colors"
+                className="w-full block bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all text-sm"
               >
                 Browse Tours
               </Link>
@@ -281,171 +346,141 @@ For support, contact: info@wolaitatours.com
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#faf8f5] py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white rounded-lg shadow-lg overflow-hidden"
+          className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden"
         >
-          {/* Success Header */}
-          <div className="bg-green-50 px-6 py-8 text-center border-b">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
-            <p className="text-lg text-gray-600">
-              Your booking has been confirmed. Get ready for an amazing experience!
+          {/* Success Header Banner */}
+          <div className="bg-orange-50/70 border-b border-orange-200/60 px-8 py-10 text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-100 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
+              <CheckCircle2 className="h-9 w-9" />
+            </div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Payment Verified</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Payment <span className="text-orange-500">Successful!</span>
+            </h1>
+            <p className="text-slate-600 text-sm md:text-base max-w-md mx-auto">
+              Your tour booking is confirmed. Get ready for an unforgettable cultural journey in Wolaita!
             </p>
             {activeTxRef && (
-              <p className="text-sm text-gray-500 mt-2">
-                Reference: {activeTxRef}
+              <p className="text-xs font-mono text-slate-500 pt-1">
+                Ref: {activeTxRef}
               </p>
             )}
           </div>
 
           {/* Booking Details */}
           {bookingDetails && (
-            <div className="px-6 py-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Booking Details</h2>
+            <div className="p-8 sm:p-10 space-y-8">
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-900 mb-1">Booking Overview</h2>
+                <p className="text-xs text-slate-500">Official receipt details recorded for your trip</p>
+              </div>
 
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
-                <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-6 bg-slate-50/70 rounded-2xl border border-slate-100 p-6">
+                <div className="space-y-4 text-xs">
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">Tour Name</label>
-                    <p className="text-lg font-semibold text-gray-900">{bookingDetails.tourName}</p>
+                    <span className="text-slate-400 uppercase tracking-wider font-bold block mb-0.5">Tour Experience</span>
+                    <p className="text-base font-bold text-slate-900">{bookingDetails.tourName}</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">Booking ID</label>
-                    <p className="text-gray-900 font-mono text-sm">{bookingDetails.id}</p>
+                    <span className="text-slate-400 uppercase tracking-wider font-bold block mb-0.5">Booking ID</span>
+                    <p className="font-mono text-slate-700 font-semibold">{bookingDetails.id}</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-500">Payment Reference</label>
-                    <p className="text-gray-900 font-mono text-sm">{activeTxRef || bookingDetails.paymentReference || 'N/A'}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500">Customer</label>
-                    <p className="text-gray-900">{bookingDetails.touristName}</p>
+                    <span className="text-slate-400 uppercase tracking-wider font-bold block mb-0.5">Customer Name</span>
+                    <p className="text-slate-900 font-bold">{bookingDetails.touristName}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 text-xs">
                   <div className="flex items-center space-x-3">
-                    <Users className="h-5 w-5 text-gray-400" />
+                    <Users className="h-4 w-4 text-orange-500 shrink-0" />
                     <div>
-                      <label className="block text-sm font-medium text-gray-500">Participants</label>
-                      <p className="text-gray-900">{bookingDetails.participants} people</p>
+                      <span className="text-slate-400 uppercase tracking-wider font-bold block mb-0.5">Participants</span>
+                      <p className="text-slate-900 font-bold">{bookingDetails.participants} {bookingDetails.participants === 1 ? 'person' : 'people'}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <Calendar className="h-5 w-5 text-gray-400" />
+                    <Calendar className="h-4 w-4 text-orange-500 shrink-0" />
                     <div>
-                      <label className="block text-sm font-medium text-gray-500">Tour Date</label>
-                      <p className="text-gray-900">
+                      <span className="text-slate-400 uppercase tracking-wider font-bold block mb-0.5">Tour Date</span>
+                      <p className="text-slate-900 font-bold">
                         {bookingDetails.tourDate?.toDate?.()?.toLocaleDateString() || 'To be confirmed'}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <div className="h-5 w-5 flex items-center justify-center">
-                      <span className="text-green-600 font-bold text-lg">$</span>
-                    </div>
+                    <div className="h-4 w-4 flex items-center justify-center font-bold text-emerald-600">$</div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-500">Total Amount</label>
-                      <p className="text-xl font-bold text-green-600">${bookingDetails.totalPrice}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <div className="h-5 w-5 flex items-center justify-center">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500">Status</label>
-                      <p className="text-green-600 font-semibold">Confirmed</p>
+                      <span className="text-slate-400 uppercase tracking-wider font-bold block mb-0.5">Total Amount Paid</span>
+                      <p className="text-lg font-extrabold text-emerald-600">${bookingDetails.totalPrice}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Special Requests */}
-              {bookingDetails.specialRequests && (
-                <div className="mb-8">
-                  <label className="block text-sm font-medium text-gray-500 mb-2">Special Requests</label>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-gray-900">{bookingDetails.specialRequests}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Next Steps */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-8">
-                <h3 className="text-lg font-semibold text-amber-800 mb-3">What's Next?</h3>
-                <ul className="space-y-2 text-amber-700">
-                  <li className="flex items-start space-x-2">
-                    <span className="text-amber-600 mt-1">•</span>
-                    <span>You will receive a confirmation email with detailed itinerary</span>
+              {/* What's Next Box */}
+              <div className="bg-orange-50/70 border border-orange-200/80 rounded-2xl p-6 space-y-3">
+                <h3 className="text-sm font-bold text-orange-950 uppercase tracking-wider">What to expect next?</h3>
+                <ul className="space-y-2 text-xs text-orange-900">
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-500 font-bold">•</span>
+                    <span>You will receive a confirmation email with your tour schedule.</span>
                   </li>
-                  <li className="flex items-start space-x-2">
-                    <span className="text-amber-600 mt-1">•</span>
-                    <span>Our team will contact you 24-48 hours before your tour</span>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-500 font-bold">•</span>
+                    <span>Our local team will contact you prior to departure for any final coordination.</span>
                   </li>
-                  <li className="flex items-start space-x-2">
-                    <span className="text-amber-600 mt-1">•</span>
-                    <span>Check your dashboard for booking updates and messages</span>
-                  </li>
-                  <li className="flex items-start space-x-2">
-                    <span className="text-amber-600 mt-1">•</span>
-                    <span>Keep your booking reference for any inquiries: {bookingDetails.id}</span>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-500 font-bold">•</span>
+                    <span>View and manage all tour details anytime on your Tourist Dashboard.</span>
                   </li>
                 </ul>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button
                   onClick={downloadReceipt}
-                  className="flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all"
                 >
-                  <Download className="h-5 w-5" />
+                  <Download className="h-4 w-4" />
                   <span>Download Receipt</span>
                 </button>
 
                 <button
                   onClick={() => navigate(getDashboardRoute)}
-                  className="flex items-center justify-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-md font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-xs hover:shadow-md"
                 >
                   <span>Go to Dashboard</span>
+                  <ArrowRight className="h-4 w-4" />
                 </button>
-
-                <Link
-                  to="/tours"
-                  className="flex items-center justify-center space-x-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50 transition-colors"
-                >
-                  <span>Browse More Tours</span>
-                </Link>
               </div>
             </div>
           )}
 
-          {/* No booking details found */}
           {!bookingDetails && paymentVerified && (
-            <div className="px-6 py-8 text-center">
-              <p className="text-gray-600 mb-4">
-                Payment was successful, but we couldn't retrieve booking details.
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                Please check your dashboard or contact support with reference: {activeTxRef || 'N/A'}
+            <div className="p-8 text-center space-y-4">
+              <p className="text-slate-600 text-sm">
+                Payment verified successfully! You may now return to your dashboard.
               </p>
               <button
                 onClick={() => navigate(getDashboardRoute)}
-                className="inline-flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-md font-medium transition-colors"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl text-sm transition-all shadow-xs"
               >
-                <span>Go to Dashboard</span>
+                Go to Dashboard
               </button>
             </div>
           )}
@@ -454,3 +489,5 @@ For support, contact: info@wolaitatours.com
     </div>
   );
 };
+
+export default PaymentSuccess;

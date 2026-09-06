@@ -6,7 +6,7 @@ import {
   UseFormSetValue
 } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Calendar, UserCheck, FileText, CheckCircle2 } from 'lucide-react';
 
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -36,10 +36,8 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
 
   useEffect(() => {
     if (isOpen && booking) {
-      console.log('UpdateBookingModal: Initializing form with booking:', booking);
       setValue('status', booking.status || 'pending');
       setValue('assignedGuide', booking.assignedGuide || '');
-      // Convert Firebase Timestamp to Date object for react-datepicker
       setValue('tourDate', (booking.tourDate && typeof booking.tourDate.toDate === 'function') ? booking.tourDate.toDate() : null);
       setValue('internalNotes', booking.internalNotes || '');
     } else {
@@ -63,69 +61,68 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
   ]);
 
   const onSubmit = async (data: UpdateBookingFormData) => {
-    console.log("onSubmit function called.");
-    if (!booking) {
-      console.log("Booking object is missing. Aborting save.");
-      return;
-    }
+    if (!booking) return;
 
-    console.log("Booking ID:", booking.id);
-    console.log("Data being sent to Firebase:", data);
-    
     const dataToUpdate = {
       ...data,
       tourDate: data.tourDate ? Timestamp.fromDate(data.tourDate) : null,
+      updatedAt: Timestamp.now()
     };
 
     try {
       const bookingRef = doc(db, 'bookings', booking.id);
       await updateDoc(bookingRef, dataToUpdate);
-      console.log("updateDoc successful.");
       toast.success('Booking updated successfully');
-      onClose(); // Close modal only after successful update
+      onClose();
     } catch (error) {
       console.error('Error updating booking:', error);
       toast.error('Failed to update booking');
     }
   };
 
-  // Handle form submission with proper error handling
-  const handleFormSubmit = async (data: UpdateBookingFormData) => {
-    try {
-      await onSubmit(data);
-    } catch (error) {
-      console.error('Form submission error:', error);
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
     }
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
+        <div
+          className="fixed inset-0 z-[99990] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto"
+          onClick={handleBackdropClick}
         >
           <motion.div
-            className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
-            initial={{ scale: 0.9, y: 50 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 50 }}
+            className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-100"
+            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 0.95, y: 20, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">Update Booking</h3>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
+            {/* Header */}
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-xs">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Update Booking</h3>
+                  <p className="text-xs text-slate-500 font-medium">Modify status & assignment</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {/* Status */}
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="status" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Booking Status
                 </label>
                 <Controller
@@ -135,7 +132,7 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
                     <select
                       {...field}
                       id="status"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer"
                     >
                       <option value="pending">Pending</option>
                       <option value="confirmed">Confirmed</option>
@@ -147,7 +144,7 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
 
               {/* Assigned Guide */}
               <div>
-                <label htmlFor="assignedGuide" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="assignedGuide" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Assigned Guide
                 </label>
                 <Controller
@@ -158,7 +155,7 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
                       {...field}
                       value={field.value || ''}
                       id="assignedGuide"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer"
                       disabled={guidesLoading}
                     >
                       <option value="">Select a guide</option>
@@ -174,7 +171,7 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
 
               {/* Tour Date */}
               <div>
-                <label htmlFor="tourDate" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="tourDate" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Tour Date
                 </label>
                 <Controller
@@ -196,7 +193,7 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
                       onBlur={field.onBlur}
                       dateFormat="yyyy/MM/dd"
                       isClearable
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer"
                       minDate={new Date()}
                       placeholderText="Select tour date"
                     />
@@ -204,7 +201,7 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
                 />
 
                 {control.getFieldState('tourDate').error && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-rose-600 text-xs mt-1 font-medium">
                     {control.getFieldState('tourDate').error?.message}
                   </p>
                 )}
@@ -212,7 +209,7 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
 
               {/* Internal Notes */}
               <div>
-                <label htmlFor="internalNotes" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="internalNotes" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Internal Notes
                 </label>
                 <Controller
@@ -223,34 +220,34 @@ export const UpdateBookingModal: React.FC<UpdateBookingModalProps> = ({ isOpen, 
                       {...field}
                       id="internalNotes"
                       rows={3}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
-                      placeholder="Add any internal notes here..."
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none placeholder:text-slate-400"
+                      placeholder="Add any internal coordinator notes here..."
                     />
                   )}
                 />
               </div>
 
               {/* Buttons */}
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-end space-x-3 pt-2 border-t border-slate-100 mt-6">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  className="px-5 py-2.5 text-xs uppercase tracking-wider font-bold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all"
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 text-xs uppercase tracking-wider font-bold text-white bg-orange-500 rounded-xl hover:bg-orange-600 transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Saving...' : 'Save'}
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

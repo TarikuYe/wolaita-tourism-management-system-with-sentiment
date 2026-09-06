@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, MapPin, Clock, Users, DollarSign, Star, Calendar, Tag } from 'lucide-react';
+import { X, MapPin, Clock, Users, DollarSign, Star, Calendar, Tag, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TourDetailsModalProps {
@@ -11,19 +11,16 @@ interface TourDetailsModalProps {
 export const TourDetailsModal: React.FC<TourDetailsModalProps> = ({ isOpen, onClose, tour }) => {
   if (!tour) return null;
 
-  // Prevent modal from closing when clicking inside the modal content
   const handleModalContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
-  // Handle backdrop click to close modal
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
 
-  // Handle escape key
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
@@ -34,7 +31,7 @@ export const TourDetailsModal: React.FC<TourDetailsModalProps> = ({ isOpen, onCl
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] overflow-y-auto" onKeyDown={handleKeyDown}>
+      <div className="fixed inset-0 z-[99990] overflow-y-auto" onKeyDown={handleKeyDown}>
         <div 
           className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0"
           onClick={handleBackdropClick}
@@ -44,11 +41,10 @@ export const TourDetailsModal: React.FC<TourDetailsModalProps> = ({ isOpen, onCl
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 z-[9998]"
+            className="fixed inset-0 transition-opacity bg-slate-950/60 backdrop-blur-xs z-[99991]"
             aria-hidden="true"
           />
 
-          {/* This element is to trick the browser into centering the modal contents. */}
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
             &#8203;
           </span>
@@ -58,165 +54,148 @@ export const TourDetailsModal: React.FC<TourDetailsModalProps> = ({ isOpen, onCl
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative inline-block w-full max-w-4xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg z-[10000]"
+            className="relative inline-block w-full max-w-4xl p-6 sm:p-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl border border-slate-100 z-[99995]"
             onClick={handleModalContentClick}
             role="dialog"
             aria-modal="true"
             aria-labelledby="tour-details-modal-title"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 id="tour-details-modal-title" className="text-xl font-medium text-gray-900">Tour Details</h3>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-xs">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 id="tour-details-modal-title" className="text-xl font-extrabold text-slate-900 tracking-tight">
+                    Tour Experience Details
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">Explore itinerary & specifics</p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100"
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-100"
                 aria-label="Close modal"
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="relative z-[10001]">
+            <div>
               <div className="grid md:grid-cols-2 gap-6">
-                {/* Tour Image */}
-                <div className="relative z-[10002]">
+                {/* Tour Image & Stats */}
+                <div className="space-y-4">
                   <div
-                    className="h-64 bg-cover bg-center rounded-lg"
+                    className="h-64 bg-cover bg-center rounded-2xl shadow-xs border border-slate-100 relative overflow-hidden"
                     style={{ 
                       backgroundImage: `url(${tour.image || 'https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'})` 
                     }}
-                  />
+                  >
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-xs px-3 py-1 rounded-full text-xs font-extrabold text-orange-600 shadow-xs border border-orange-100">
+                      ${tour.price} / person
+                    </div>
+                  </div>
                   
                   {/* Tour Stats */}
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 text-gray-600 mb-1">
-                        <DollarSign className="h-4 w-4 pointer-events-none" />
-                        <span className="text-sm">Price</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
+                      <div className="flex items-center space-x-1.5 text-slate-400 mb-1">
+                        <Clock className="h-3.5 w-3.5 text-orange-500" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Duration</span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900">${tour.price}</p>
+                      <p className="text-sm font-extrabold text-slate-900">{tour.duration} {tour.duration === 1 ? 'day' : 'days'}</p>
                     </div>
                     
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 text-gray-600 mb-1">
-                        <Clock className="h-4 w-4 pointer-events-none" />
-                        <span className="text-sm">Duration</span>
+                    <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
+                      <div className="flex items-center space-x-1.5 text-slate-400 mb-1">
+                        <Users className="h-3.5 w-3.5 text-orange-500" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Max Group</span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900">{tour.duration} days</p>
+                      <p className="text-sm font-extrabold text-slate-900">{tour.maxParticipants || 15} people</p>
                     </div>
                     
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 text-gray-600 mb-1">
-                        <Users className="h-4 w-4 pointer-events-none" />
-                        <span className="text-sm">Max Participants</span>
+                    <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
+                      <div className="flex items-center space-x-1.5 text-slate-400 mb-1">
+                        <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Rating</span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900">{tour.maxParticipants}</p>
+                      <p className="text-sm font-extrabold text-slate-900">{tour.rating ? `${tour.rating} / 5` : '4.9 / 5'}</p>
                     </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 text-gray-600 mb-1">
-                        <Star className="h-4 w-4 pointer-events-none" />
-                        <span className="text-sm">Rating</span>
+
+                    <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100">
+                      <div className="flex items-center space-x-1.5 text-slate-400 mb-1">
+                        <Tag className="h-3.5 w-3.5 text-orange-500" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Category</span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900">{tour.rating || 'N/A'}</p>
+                      <p className="text-sm font-extrabold text-slate-900 capitalize">{tour.category || 'Cultural'}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Tour Information */}
-                <div className="space-y-6 relative z-[10002]">
+                <div className="space-y-5 text-xs">
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">{tour.title}</h4>
+                    <h4 className="text-lg font-extrabold text-slate-900 leading-snug">{tour.title}</h4>
                     {tour.titleAm && (
-                      <p className="text-gray-600 mb-4">{tour.titleAm}</p>
+                      <p className="text-slate-500 mt-0.5">{tour.titleAm}</p>
                     )}
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3 text-gray-600">
-                      <MapPin className="h-5 w-5 text-amber-600 pointer-events-none" />
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-orange-50 text-orange-700 border border-orange-200/70 font-bold">
+                      <MapPin className="h-3.5 w-3.5" />
                       <span>{tour.location}</span>
-                      {tour.locationAm && <span className="text-sm">({tour.locationAm})</span>}
-                    </div>
-                    
-                    <div className="flex items-center space-x-3 text-gray-600">
-                      <Tag className="h-5 w-5 text-amber-600 pointer-events-none" />
-                      <span className="capitalize">{tour.category}</span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                    </span>
+                    {tour.difficulty && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-xl bg-slate-100 text-slate-700 font-bold capitalize">
                         {tour.difficulty}
                       </span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3 text-gray-600">
-                      <Calendar className="h-5 w-5 text-amber-600 pointer-events-none" />
-                      <span>Created: {tour.createdAt?.toLocaleDateString()}</span>
-                    </div>
+                    )}
+                    {tour.agencyName && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-bold">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span>{tour.agencyName}</span>
+                      </span>
+                    )}
                   </div>
 
                   <div>
-                    <h5 className="font-medium text-gray-900 mb-2">Description</h5>
-                    <p className="text-gray-600 text-sm leading-relaxed">{tour.description}</p>
-                    {tour.descriptionAm && (
-                      <div className="mt-3">
-                        <h6 className="font-medium text-gray-700 mb-1">Description (Amharic)</h6>
-                        <p className="text-gray-600 text-sm leading-relaxed">{tour.descriptionAm}</p>
-                      </div>
-                    )}
+                    <h5 className="font-bold text-slate-900 uppercase tracking-wider mb-1.5">Description</h5>
+                    <p className="text-slate-600 leading-relaxed">{tour.description}</p>
                   </div>
 
                   {(tour.highlights && tour.highlights.length > 0) && (
                     <div>
-                      <h5 className="font-medium text-gray-900 mb-2">Highlights</h5>
-                      <ul className="space-y-1">
+                      <h5 className="font-bold text-slate-900 uppercase tracking-wider mb-2">Highlights</h5>
+                      <ul className="space-y-1.5">
                         {tour.highlights.map((highlight: string, index: number) => (
-                          <li key={index} className="text-gray-600 text-sm flex items-start space-x-2">
-                            <span className="text-amber-600 mt-1">•</span>
+                          <li key={index} className="text-slate-700 flex items-start space-x-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                             <span>{highlight}</span>
                           </li>
                         ))}
                       </ul>
-                      
-                      {tour.highlightsAm && tour.highlightsAm.length > 0 && (
-                        <div className="mt-3">
-                          <h6 className="font-medium text-gray-700 mb-1">Highlights (Amharic)</h6>
-                          <ul className="space-y-1">
-                            {tour.highlightsAm.map((highlight: string, index: number) => (
-                              <li key={index} className="text-gray-600 text-sm flex items-start space-x-2">
-                                <span className="text-amber-600 mt-1">•</span>
-                                <span>{highlight}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                     </div>
                   )}
 
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h5 className="font-medium text-amber-800 mb-2">Tour Status</h5>
-                    <div className="space-y-1 text-sm">
-                      <p className="text-amber-700">
-                        <span className="font-medium">Availability:</span> {tour.available ? 'Available' : 'Not Available'}
-                      </p>
-                      <p className="text-amber-700">
-                        <span className="font-medium">Reviews:</span> {tour.reviewsCount || 0} reviews
-                      </p>
-                      <p className="text-amber-700">
-                        <span className="font-medium">Last Updated:</span> {tour.updatedAt?.toLocaleDateString() || 'N/A'}
-                      </p>
-                    </div>
+                  <div className="bg-orange-50/60 border border-orange-200/70 rounded-2xl p-4 space-y-1.5">
+                    <h5 className="font-bold text-orange-950 uppercase tracking-wider">Booking Status</h5>
+                    <p className="text-orange-900">
+                      Availability: <strong className="text-orange-950">{tour.available !== false ? 'Instant Booking Available' : 'On Request'}</strong>
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="flex justify-end pt-6 border-t mt-6 relative z-[10002]">
+              <div className="flex justify-end pt-6 border-t border-slate-100 mt-6">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="relative z-[10003] px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all text-xs uppercase tracking-wider shadow-xs"
                 >
                   Close
                 </button>

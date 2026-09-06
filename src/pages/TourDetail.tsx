@@ -1,7 +1,7 @@
 // src/pages/TourDetail.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, MapPin, Clock, DollarSign, Heart, Users, Calendar, Check, X } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Clock, DollarSign, Heart, Users, Calendar, Check, ShieldCheck, Sparkles } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
@@ -13,7 +13,6 @@ import { FavoriteButton } from '../components/FavoriteButton';
 import toast from 'react-hot-toast';
 
 export const TourDetail: React.FC = () => {
-  const { t } = useLanguage();
   const { language } = useLanguage();
   const { currentUser } = useAuth();
   const { id } = useParams<{ id: string }>();
@@ -84,10 +83,10 @@ export const TourDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#faf8f5]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading tour details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Loading tour details...</p>
         </div>
       </div>
     );
@@ -95,13 +94,14 @@ export const TourDetail: React.FC = () => {
 
   if (!tour) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#faf8f5] px-4">
+        <div className="text-center bg-white p-8 sm:p-12 rounded-3xl border border-slate-100 shadow-sm max-w-md w-full">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">
             {language === 'en' ? 'Tour not found' : 'ጉዞ አልተገኘም'}
           </h2>
-          <Link to="/tours" className="text-amber-600 hover:text-amber-700 font-medium">
-            {language === 'en' ? 'Back to Tours' : 'ወደ ጉዞዎች ተመለስ'}
+          <Link to="/tours" className="inline-flex items-center text-orange-600 hover:text-orange-700 font-semibold gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            <span>{language === 'en' ? 'Back to Tours' : 'ወደ ጉዞዎች ተመለስ'}</span>
           </Link>
         </div>
       </div>
@@ -112,73 +112,73 @@ export const TourDetail: React.FC = () => {
   const tourDescription = language === 'en' ? tour.description : tour.descriptionAm || tour.description;
   const tourLocation = language === 'en' ? tour.location : tour.locationAm || tour.location;
   const tourHighlights = language === 'en' ? tour.highlights : tour.highlightsAm || tour.highlights;
-  const mainImage = tour.images?.[0] || 'https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop';
+  const mainImage = tour.images?.[0] || '/images/Attractions/Ajoo.jpg';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="relative h-96 overflow-hidden">
+    <div className="min-h-screen bg-[#faf8f5]">
+      {/* Header Banner */}
+      <div className="relative h-[420px] overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${mainImage})` }}
         >
-          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-black/30"></div>
         </div>
         
-        <div className="relative z-10 container mx-auto px-4 h-full flex flex-col justify-end pb-8">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-end pb-10">
           <Link 
             to="/tours"
-            className="inline-flex items-center text-white mb-6 hover:text-amber-200 transition-colors"
+            className="inline-flex items-center text-white/90 mb-6 hover:text-orange-300 font-medium text-sm transition-colors w-fit gap-2 bg-black/30 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10"
           >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            {language === 'en' ? 'Back to Tours' : 'ወደ ጉዞዎች ተመለስ'}
+            <ArrowLeft className="h-4 w-4" />
+            <span>{language === 'en' ? 'Back to Tours' : 'ወደ ጉዞዎች ተመለስ'}</span>
           </Link>
           
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold text-white mb-4"
+            className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight"
           >
             {tourTitle}
           </motion.h1>
           
-          <div className="flex flex-wrap items-center gap-6 text-white">
-            <div className="flex items-center">
-              <MapPin className="h-5 w-5 mr-2" />
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-white text-xs sm:text-sm">
+            <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+              <MapPin className="h-4 w-4 mr-1.5 text-orange-400" />
               <span>{tourLocation}</span>
             </div>
-            <div className="flex items-center">
-              <Clock className="h-5 w-5 mr-2" />
+            <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+              <Clock className="h-4 w-4 mr-1.5 text-orange-400" />
               <span>{tour.duration} {tour.duration === 1 ? (language === 'en' ? 'Day' : 'ቀን') : (language === 'en' ? 'Days' : 'ቀናት')}</span>
             </div>
-            <div className="flex items-center">
-              <Star className="h-5 w-5 mr-2 text-yellow-400 fill-current" />
-              <span>{tour.rating?.toFixed(1) || '0.0'} ({tour.reviewsCount || 0})</span>
+            <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+              <Star className="h-4 w-4 mr-1.5 text-orange-400 fill-current" />
+              <span>{tour.rating?.toFixed(1) || '4.8'} ({tour.reviewsCount || 0})</span>
             </div>
-            <div className="flex items-center">
-              <DollarSign className="h-5 w-5 mr-2" />
-              <span className="text-2xl font-bold">${tour.price}</span>
-              <span className="text-sm ml-1">/person</span>
+            <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+              <span className="text-orange-400 font-bold mr-1">${tour.price}</span>
+              <span className="text-slate-200">/ person</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-3 gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid md:grid-cols-3 gap-8">
           {/* Left Column - Tour Details */}
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 space-y-8">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-lg shadow-md p-6 mb-8"
+              className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8"
             >
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                {language === 'en' ? 'Overview' : 'አጠቃላይ እይታ'}
+              <h2 className="text-2xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-orange-500" />
+                <span>{language === 'en' ? 'Overview' : 'አጠቃላይ እይታ'}</span>
               </h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <p className="text-slate-600 leading-relaxed text-base whitespace-pre-line">
                 {tourDescription}
               </p>
             </motion.div>
@@ -188,18 +188,18 @@ export const TourDetail: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-lg shadow-md p-6 mb-8"
+                className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8"
               >
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                <h2 className="text-2xl font-bold text-slate-900 mb-6">
                   {language === 'en' ? 'Highlights' : 'ዋና ዋና ነገሮች'}
                 </h2>
-                <ul className="grid md:grid-cols-2 gap-3">
+                <ul className="grid sm:grid-cols-2 gap-4">
                   {tourHighlights.map((highlight, index) => (
-                    <li key={index} className="flex items-start">
-                      <div className="bg-amber-100 p-1 rounded-full mr-3 mt-1 flex-shrink-0">
-                        <Heart className="h-4 w-4 text-amber-600" />
+                    <li key={index} className="flex items-start bg-[#fafafa] p-4 rounded-2xl border border-slate-100">
+                      <div className="bg-rose-100/80 p-1.5 rounded-xl mr-3 mt-0.5 flex-shrink-0 text-rose-500">
+                        <Heart className="h-4 w-4" />
                       </div>
-                      <span className="text-gray-700">{highlight}</span>
+                      <span className="text-slate-700 font-medium text-sm">{highlight}</span>
                     </li>
                   ))}
                 </ul>
@@ -212,18 +212,18 @@ export const TourDetail: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-white rounded-lg shadow-md p-6 mb-8"
+                className="bg-white rounded-3xl border border-slate-100 shadow-xs p-8"
               >
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                <h2 className="text-2xl font-bold text-slate-900 mb-6">
                   {language === 'en' ? 'Gallery' : 'ጋለሪ'}
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {tour.images.slice(1).map((image, index) => (
                     <img
                       key={index}
                       src={image}
                       alt={`${tourTitle} - Image ${index + 2}`}
-                      className="w-full h-48 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+                      className="w-full h-44 object-cover rounded-2xl border border-slate-100 hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
                       onClick={() => window.open(image, '_blank')}
                     />
                   ))}
@@ -238,85 +238,87 @@ export const TourDetail: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-lg shadow-lg p-6 sticky top-8"
+              className="bg-white rounded-3xl border border-slate-100 shadow-sm p-7 sticky top-24"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                <h3 className="text-xl font-bold text-slate-900">
                   {language === 'en' ? 'Book This Tour' : 'ይህን ጉዞ ይዘዙ'}
                 </h3>
                 <FavoriteButton tourId={tour.id} />
               </div>
 
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{language === 'en' ? 'Price per person' : 'በአንድ ሰው ዋጋ'}</span>
-                  <span className="font-semibold text-gray-900">${tour.price}</span>
+              <div className="space-y-3.5 mb-6 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">{language === 'en' ? 'Price per person' : 'በአንድ ሰው ዋጋ'}</span>
+                  <span className="font-extrabold text-orange-600 text-lg">${tour.price}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{language === 'en' ? 'Duration' : 'ጊዜ'}</span>
-                  <span className="font-semibold text-gray-900">{tour.duration} {tour.duration === 1 ? (language === 'en' ? 'Day' : 'ቀን') : (language === 'en' ? 'Days' : 'ቀናት')}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">{language === 'en' ? 'Duration' : 'ጊዜ'}</span>
+                  <span className="font-semibold text-slate-800">{tour.duration} {tour.duration === 1 ? (language === 'en' ? 'Day' : 'ቀን') : (language === 'en' ? 'Days' : 'ቀናት')}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{language === 'en' ? 'Max Participants' : 'ከፍተኛ ተሳታፊዎች'}</span>
-                  <span className="font-semibold text-gray-900">{tour.maxParticipants}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">{language === 'en' ? 'Max Participants' : 'ከፍተኛ ተሳታፊዎች'}</span>
+                  <span className="font-semibold text-slate-800">{tour.maxParticipants}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{language === 'en' ? 'Difficulty' : 'አስቸጋሪነት'}</span>
-                  <span className={`font-semibold px-2 py-1 rounded ${
-                    tour.difficulty === 'Easy' ? 'bg-green-100 text-green-800' :
-                    tour.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">{language === 'en' ? 'Difficulty' : 'አስቸጋሪነት'}</span>
+                  <span className={`font-semibold text-xs px-2.5 py-1 rounded-full ${
+                    tour.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-800' :
+                    tour.difficulty === 'Medium' ? 'bg-amber-100 text-amber-800' :
+                    'bg-rose-100 text-rose-800'
                   }`}>
                     {tour.difficulty}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{language === 'en' ? 'Category' : 'ምድብ'}</span>
-                  <span className="font-semibold text-gray-900">{tour.category}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">{language === 'en' ? 'Category' : 'ምድብ'}</span>
+                  <span className="font-semibold text-slate-800">{tour.category}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{language === 'en' ? 'Agency' : 'አጀንዲ'}</span>
-                  <span className="font-semibold text-gray-900">{tour.agencyName}</span>
-                </div>
+                {tour.agencyName && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">{language === 'en' ? 'Agency' : 'ኤጀንሲ'}</span>
+                    <span className="font-semibold text-slate-800">{tour.agencyName}</span>
+                  </div>
+                )}
               </div>
 
               {tour.available ? (
                 <button
                   onClick={handleBookNow}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-xs hover:shadow-md flex items-center justify-center gap-2"
                 >
-                  <Calendar className="h-5 w-5 mr-2" />
-                  {language === 'en' ? 'Book Now' : 'አሁን ይዘዙ'}
+                  <Calendar className="h-5 w-5" />
+                  <span>{language === 'en' ? 'Book Now' : 'አሁን ይዘዙ'}</span>
                 </button>
               ) : (
                 <button
                   disabled
-                  className="w-full bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg cursor-not-allowed flex items-center justify-center"
+                  className="w-full bg-slate-200 text-slate-400 font-bold py-3.5 px-6 rounded-xl cursor-not-allowed flex items-center justify-center"
                 >
                   {language === 'en' ? 'Not Available' : 'አይገኝም'}
                 </button>
               )}
 
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h4 className="font-semibold text-gray-900 mb-3">
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3">
                   {language === 'en' ? 'What\'s Included' : 'የተካተቱ ነገሮች'}
                 </h4>
-                <ul className="space-y-2 text-sm text-gray-600">
+                <ul className="space-y-2 text-xs text-slate-600">
                   <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
-                    <span>{language === 'en' ? 'Professional Guide' : 'የሙያ መሪ'}</span>
+                    <Check className="h-4 w-4 text-emerald-600 mr-2 flex-shrink-0" />
+                    <span>{language === 'en' ? 'Professional Local Guide' : 'የሙያ የአካባቢ መሪ'}</span>
                   </li>
                   <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
-                    <span>{language === 'en' ? 'Transportation' : 'መጓዝ'}</span>
+                    <Check className="h-4 w-4 text-emerald-600 mr-2 flex-shrink-0" />
+                    <span>{language === 'en' ? 'Ground Transportation' : 'የመሬት መጓጓዣ'}</span>
                   </li>
                   <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
-                    <span>{language === 'en' ? 'Accommodation' : 'አሰፋፈር'}</span>
+                    <Check className="h-4 w-4 text-emerald-600 mr-2 flex-shrink-0" />
+                    <span>{language === 'en' ? 'Verified Accommodation' : 'የተረጋገጠ ማረፊያ'}</span>
                   </li>
                   <li className="flex items-center">
-                    <Check className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
-                    <span>{language === 'en' ? 'Meals' : 'ምግቦች'}</span>
+                    <Check className="h-4 w-4 text-emerald-600 mr-2 flex-shrink-0" />
+                    <span>{language === 'en' ? 'Selected Cultural Meals' : 'የተመረጡ ባህላዊ ምግቦች'}</span>
                   </li>
                 </ul>
               </div>

@@ -58,12 +58,12 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     }
 
     if (selectedRating === 0) {
-      toast.error('Please select a rating');
+      toast.error('Please select a star rating');
       return;
     }
     if (!booking) {
-        toast.error("Booking not found!");
-        return;
+      toast.error("Booking not found!");
+      return;
     }
 
     setIsSubmitting(true);
@@ -79,10 +79,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         comment: data.comment,
         verified: true,
         createdAt: Timestamp.now(),
-        // No sentiment data - will be added later by admin/agency
       };
-
-      console.log('Review Data being saved:', reviewData);
 
       if (mode === 'edit' && review) {
         await updateDoc(doc(db, 'reviews', review.id), {
@@ -99,9 +96,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       }
 
       handleClose();
-    } catch (error) {
-      console.error('Review submission error:', error);
-      toast.error(`Failed to ${mode === 'edit' ? 'update' : 'submit'} review. Please try again.`);
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      toast.error(error.message || 'Failed to submit review');
     } finally {
       setIsSubmitting(false);
     }
@@ -129,26 +126,6 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     }
   };
 
-  const handleFormKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      const target = e.target as HTMLElement;
-      if (target.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-      }
-    }
-    if (e.key === 'Escape') {
-      handleClose();
-    }
-  };
-
-  const handleInputClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleInputFocus = (e: React.FocusEvent) => {
-    e.stopPropagation();
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -162,7 +139,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 z-[9998]"
+            className="fixed inset-0 transition-opacity bg-slate-950/60 backdrop-blur-xs z-[9998]"
             aria-hidden="true"
           />
 
@@ -174,108 +151,101 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg z-[10000]"
+            className="relative inline-block w-full max-w-md p-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl border border-slate-100 z-[10000]"
             onClick={handleModalContentClick}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="review-modal-title"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 id="review-modal-title" className="text-lg font-medium text-gray-900">
-                {mode === 'edit' ? 'Edit Review' : 'Leave a Review'}
-              </h3>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+              <div>
+                <h3 className="text-xl font-extrabold text-slate-900">
+                  {mode === 'edit' ? 'Edit Review' : 'Leave a Review'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">{booking?.tourName}</p>
+              </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100"
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-100"
                 aria-label="Close modal"
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mb-6 relative z-[10001]">
-              <h4 className="font-semibold text-gray-900 mb-2">{booking?.tourName}</h4>
-              <p className="text-sm text-gray-600">
-                Share your experience to help other travelers
-              </p>
-            </div>
-
-            <div className="relative z-[10001]">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" onKeyDown={handleFormKeyDown}>
-                <div className="relative z-[10002]">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Rating
-                  </label>
-                  <div className="flex space-x-1">
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <button
-                        key={rating}
-                        type="button"
-                        onClick={() => handleRatingClick(rating)}
-                        className="relative z-[10004] focus:outline-none p-1 rounded-md hover:bg-gray-100 transition-colors"
-                      >
-                        <Star
-                          className={`h-8 w-8 transition-colors ${
-                            rating <= selectedRating
-                              ? 'text-yellow-400 fill-current'
-                              : 'text-gray-300 hover:text-yellow-300'
-                          }`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    {...register('rating', { required: 'Please select a rating' })}
-                    type="hidden"
-                    value={selectedRating}
-                  />
-                  {errors.rating && (
-                    <p className="mt-1 text-sm text-red-600">{errors.rating.message}</p>
-                  )}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Rating
+                </label>
+                <div className="flex space-x-2 bg-slate-50 border border-slate-100 p-3 rounded-2xl justify-center">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => handleRatingClick(rating)}
+                      className="focus:outline-none p-1 transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`h-7 w-7 transition-colors ${
+                          rating <= selectedRating
+                            ? 'text-amber-400 fill-amber-400'
+                            : 'text-slate-300 hover:text-amber-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
                 </div>
+                <input
+                  {...register('rating', { required: 'Please select a rating' })}
+                  type="hidden"
+                  value={selectedRating}
+                />
+                {errors.rating && (
+                  <p className="mt-1.5 text-xs text-rose-600 font-medium">{errors.rating.message}</p>
+                )}
+              </div>
 
-                <div className="relative z-[10002]">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Review
-                  </label>
-                  <textarea
-                    {...register('comment', {
-                      required: 'Please write a review',
-                      minLength: { value: 10, message: 'Review must be at least 10 characters long' }
-                    })}
-                    rows={4}
-                    className="relative z-[10004] w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-vertical bg-white"
-                    placeholder="Tell us about your experience..."
-                    onClick={handleInputClick}
-                    onFocus={handleInputFocus}
-                  />
-                  {errors.comment && (
-                    <p className="mt-1 text-sm text-red-600">{errors.comment.message}</p>
-                  )}
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Your Review & Experience
+                </label>
+                <textarea
+                  {...register('comment', {
+                    required: 'Please write a review',
+                    minLength: { value: 10, message: 'Review must be at least 10 characters long' }
+                  })}
+                  rows={4}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none"
+                  placeholder="Tell us about your experience..."
+                />
+                {errors.comment && (
+                  <p className="mt-1.5 text-xs text-rose-600 font-medium">{errors.comment.message}</p>
+                )}
+              </div>
 
-                <div className="flex space-x-3 pt-4 relative z-[10002]">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="relative z-[10003] flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="relative z-[10003] flex-1 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isSubmitting ? 'Submitting...' : (mode === 'edit' ? 'Update Review' : 'Submit Review')}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-xs hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : (mode === 'edit' ? 'Update Review' : 'Submit Review')}
+                </button>
+              </div>
+            </form>
           </motion.div>
         </div>
       </div>
     </AnimatePresence>
   );
 };
+
+export default ReviewModal;
