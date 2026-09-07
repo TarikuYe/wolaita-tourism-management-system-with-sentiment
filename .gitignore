@@ -67,6 +67,7 @@ google-services.json
 *.cer
 
 # Android
+android/
 android/local.properties
 local.properties
 !local.properties.example
