@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, MapPin, Clock, DollarSign, Star, Trash2, ArrowLeft, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites, useTours } from '../hooks/useFirestore';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { ConfirmModal, ConfirmModalConfig } from '../components/Modals/ConfirmModal';
 
 interface Tour {
   id: string;
@@ -26,15 +27,31 @@ export const FavoritesPage: React.FC = () => {
   const favoriteTourIds = favorites.map((fav: any) => fav.tourId);
   const favoriteTours = allTours.filter((tour: Tour) => favoriteTourIds.includes(tour.id));
 
-  const handleRemoveFavorite = async (favoriteId: string, tourTitle: string) => {
-    if (!window.confirm(`Remove "${tourTitle}" from your favorites?`)) return;
-    try {
-      await deleteDocument('favorites', favoriteId);
-      toast.success('Removed from favorites!', { id: `fav-${favoriteId}` });
-    } catch (err) {
-      console.error('Failed to remove favorite:', err);
-      toast.error('Failed to remove favorite', { id: `fav-err-${favoriteId}` });
-    }
+  const [confirmModalConfig, setConfirmModalConfig] = useState<ConfirmModalConfig>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const handleRemoveFavorite = (favoriteId: string, tourTitle: string) => {
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Remove Favorite',
+      message: `Are you sure you want to remove "${tourTitle}" from your saved favorites?`,
+      type: 'warning',
+      confirmText: 'Remove',
+      cancelText: 'Keep Saved',
+      onConfirm: async () => {
+        try {
+          await deleteDocument('favorites', favoriteId);
+          toast.success('Removed from favorites!', { id: `fav-${favoriteId}` });
+        } catch (err) {
+          console.error('Failed to remove favorite:', err);
+          toast.error('Failed to remove favorite', { id: `fav-err-${favoriteId}` });
+        }
+      }
+    });
   };
 
   if (favoritesLoading || toursLoading) {
@@ -182,6 +199,11 @@ export const FavoritesPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        {...confirmModalConfig}
+        onClose={() => setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

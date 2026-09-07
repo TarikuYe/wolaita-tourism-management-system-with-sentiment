@@ -43,9 +43,9 @@ export const markBookingAsCompleted = async (id: string) => {
       completedAt: Timestamp.now(), // Set the completion timestamp
       updatedAt: Timestamp.now(),
     });
-    toast.success('Booking marked as completed');
+    toast.success('Booking marked as completed', { id: `complete-booking-${id}` });
   } catch (err: any) {
-    toast.error('Failed to mark booking as completed');
+    toast.error('Failed to mark booking as completed', { id: `complete-booking-err-${id}` });
     throw err;
   }
 };

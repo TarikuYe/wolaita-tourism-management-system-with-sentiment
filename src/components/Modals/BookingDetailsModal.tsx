@@ -64,7 +64,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
             {/* Header */}
             <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-xs">
+                <div className="w-11 h-11 rounded-2xl bg-amber-100/80 text-amber-600 flex items-center justify-center shadow-xs border border-amber-200/50">
                   <Calendar className="h-5 w-5" />
                 </div>
                 <div>
@@ -74,7 +74,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
               </div>
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-full hover:bg-slate-100"
+                className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-100"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -150,7 +150,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen
               </button>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all text-xs uppercase tracking-wider shadow-xs"
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md shadow-amber-500/20 hover:shadow-lg transition-all"
               >
                 Close
               </button>

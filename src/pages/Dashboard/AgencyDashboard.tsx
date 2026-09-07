@@ -29,6 +29,7 @@ import { db } from '../../config/firebase';
 import toast from 'react-hot-toast';
 import { BookingDetailsModal } from '../../components/Modals/BookingDetailsModal';
 import { UpdateBookingModal } from '../../components/Modals/UpdateBookingModal';
+import { ConfirmModal, ConfirmModalConfig } from '../../components/Modals/ConfirmModal';
 import { Booking } from '../../types/booking';
 import { Tour } from '../../types/index';
 import { AgencySentimentAnalytics } from '../../components/Analytics/AgencySentimentAnalytics';
@@ -76,6 +77,12 @@ export const AgencyDashboard: React.FC = () => {
   const [localBookings, setLocalBookings] = useState<Booking[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [confirmModalConfig, setConfirmModalConfig] = useState<ConfirmModalConfig>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Data hooks
   const { data: tours, loading: toursLoading, error: toursError } = useTours(currentUser?.id);
@@ -399,12 +406,12 @@ export const AgencyDashboard: React.FC = () => {
 
   // Helper functions
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    switch (status?.toLowerCase()) {
+      case 'confirmed': return 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
+      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200/80';
+      case 'completed': return 'bg-blue-50 text-blue-700 border-blue-200/80';
+      case 'cancelled': return 'bg-rose-50 text-rose-700 border-rose-200/80';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200/80';
     }
   };
 
@@ -430,15 +437,24 @@ export const AgencyDashboard: React.FC = () => {
     setShowBookingDetailsModal(true);
   };
 
-  const handleDeleteTour = async (tourId: string, tourTitle: string) => {
-    if (!confirm(`Are you sure you want to delete "${tourTitle}"?`)) return;
-    try {
-      await deleteDoc(doc(db, 'tours', tourId));
-      toast.success('Tour deleted successfully');
-    } catch (error) {
-      console.error('Error deleting tour:', error);
-      toast.error('Failed to delete tour');
-    }
+  const handleDeleteTour = (tourId: string, tourTitle: string) => {
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Delete Tour Package',
+      message: `Are you sure you want to delete "${tourTitle}"? This will permanently remove the tour listing from the system.`,
+      type: 'danger',
+      confirmText: 'Delete Tour',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'tours', tourId));
+          toast.success('Tour deleted successfully', { id: `delete-tour-${tourId}` });
+        } catch (error) {
+          console.error('Error deleting tour:', error);
+          toast.error('Failed to delete tour', { id: `delete-tour-err-${tourId}` });
+        }
+      }
+    });
   };
 
   const handleToggleAvailability = async (tour: Tour) => {
@@ -446,10 +462,10 @@ export const AgencyDashboard: React.FC = () => {
       await updateDoc(doc(db, 'tours', tour.id), {
         available: !tour.available
       });
-      toast.success(`Tour ${tour.available ? 'disabled' : 'enabled'} successfully`);
+      toast.success(`Tour ${tour.available ? 'disabled' : 'enabled'} successfully`, { id: `toggle-tour-${tour.id}` });
     } catch (error) {
       console.error('Error updating tour availability:', error);
-      toast.error('Failed to update tour availability');
+      toast.error('Failed to update tour availability', { id: `toggle-tour-err-${tour.id}` });
     }
   };
 
@@ -462,13 +478,13 @@ export const AgencyDashboard: React.FC = () => {
       
       // Then update Firestore
       await updateDoc(doc(db, 'bookings', id), { status });
-      toast.success('Booking status updated');
+      toast.success('Booking status updated', { id: `update-status-${id}` });
     } catch (err) {
       // Revert local state if there's an error
       setLocalBookings(prev => prev.map(booking => 
         booking.id === id ? { ...booking, status: booking.status } : booking
       ));
-      toast.error('Failed to update status');
+      toast.error('Failed to update status', { id: `update-status-err-${id}` });
     }
   };
 
@@ -479,70 +495,48 @@ export const AgencyDashboard: React.FC = () => {
         booking.id === id ? { ...booking, status: 'completed' } : booking
       ));
       
-      // Then update Firestore
+      // Then update Firestore - markBookingAsCompleted handles toast notification cleanly
       await markBookingAsCompleted(id);
-      toast.success('Booking marked as completed');
     } catch (err) {
       // Revert local state if there's an error
       setLocalBookings(prev => prev.map(booking => 
         booking.id === id ? { ...booking, status: 'confirmed' } : booking
       ));
-      toast.error('Failed to complete booking');
     }
   };
 
-  const handleDeleteBooking = async (id: string) => {
-    console.log('Delete booking called for ID:', id);
-    
+  const handleDeleteBooking = (id: string) => {
     if (!id) {
-      console.error('No booking ID provided for deletion');
-      toast.error('Invalid booking ID');
+      toast.error('Invalid booking ID', { id: 'invalid-booking-id' });
       return;
     }
 
     const bookingToDelete = localBookings.find(b => b.id === id);
-    const confirmed = window.confirm(
-      `Are you sure you want to delete this booking?${bookingToDelete ? `\n\nTour: ${bookingToDelete.tourName}\nCustomer: ${bookingToDelete.customerName}` : ''}\n\nThis action cannot be undone.`
-    );
-    
-    if (!confirmed) {
-      console.log('Delete cancelled by user');
-      return;
-    }
+    const tourName = bookingToDelete?.tourName || 'this tour';
+    const customerName = bookingToDelete?.customerName ? ` (${bookingToDelete.customerName})` : '';
 
-    try {
-      console.log('Deleting booking from Firestore...');
-      
-      // First delete from Firestore
-      await deleteDoc(doc(db, 'bookings', id));
-      console.log('Firestore delete successful');
-      
-      // Then update local state
-      setLocalBookings(prev => {
-        const updated = prev.filter(booking => booking.id !== id);
-        console.log('Local state updated, remaining bookings:', updated.length);
-        return updated;
-      });
-      
-      toast.success('Booking deleted successfully');
-    } catch (err: any) {
-      console.error('Error deleting booking:', err);
-      
-      // More specific error handling
-      if (err.code === 'permission-denied') {
-        toast.error('You do not have permission to delete this booking');
-      } else if (err.code === 'not-found') {
-        toast.error('Booking not found - it may have already been deleted');
-        // Remove from local state anyway since it doesn't exist
-        setLocalBookings(prev => prev.filter(booking => booking.id !== id));
-      } else {
-        toast.error('Failed to delete booking. Please try again.');
-        // If error, try to reload from Firestore to get correct state
-        if (bookings && !bookingsLoading) {
-          setLocalBookings(bookings);
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Delete Booking',
+      message: `Are you sure you want to delete booking for ${tourName}${customerName}? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Booking',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'bookings', id));
+          setLocalBookings(prev => prev.filter(booking => booking.id !== id));
+          toast.success('Booking deleted successfully', { id: `delete-booking-${id}` });
+        } catch (err: any) {
+          console.error('Error deleting booking:', err);
+          if (err.code === 'permission-denied') {
+            toast.error('You do not have permission to delete this booking', { id: `delete-perm-err-${id}` });
+          } else {
+            toast.error('Failed to delete booking. Please try again.', { id: `delete-err-${id}` });
+          }
         }
       }
-    }
+    });
   };
 
   // Actions Menu Component for Bookings - Fixed with React Portal & Fixed Positioning
@@ -765,15 +759,15 @@ export const AgencyDashboard: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="bg-white rounded-lg shadow p-6"
+                    className="bg-white rounded-2xl shadow-xs hover:shadow-md border border-slate-100 p-6 transition-all"
                   >
                     <div className="flex items-center">
-                      <div className={`flex-shrink-0 p-3 rounded-lg ${stat.color}`}>
+                      <div className={`flex-shrink-0 p-3.5 rounded-2xl ${stat.color} shadow-xs`}>
                         <stat.icon className="h-6 w-6 text-white" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                        <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{stat.label}</p>
+                        <p className="text-2xl font-extrabold text-slate-900 mt-1">{stat.value}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -786,37 +780,37 @@ export const AgencyDashboard: React.FC = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.6 }}
-                  className="bg-white rounded-lg shadow"
+                  className="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden"
                 >
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Recent Bookings</h3>
+                  <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="text-base font-extrabold text-slate-900 tracking-tight">Recent Bookings</h3>
                   </div>
                   <div className="p-6">
                     <div className="space-y-4">
                       {localBookings.length > 0 ? (
                         localBookings.slice(0, 3).map((booking) => (
-                          <div key={booking.id} className="border border-gray-200 rounded-lg p-4">
+                          <div key={booking.id} className="border border-slate-200/70 rounded-2xl p-4 bg-slate-50/40 hover:bg-slate-50 transition-colors">
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-gray-900">{booking.customerName || 'Customer'}</h4>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
+                              <h4 className="font-extrabold text-slate-900 text-sm">{booking.customerName || 'Customer'}</h4>
+                              <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-full border ${getStatusColor(booking.status)}`}>
                                 {booking.status}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{booking.tourName}</p>
-                            <div className="flex items-center justify-between text-sm text-gray-500">
+                            <p className="text-xs font-medium text-slate-600 mb-2">{booking.tourName}</p>
+                            <div className="flex items-center justify-between text-xs text-slate-500">
                               <span>
                                 {booking.tourDate
                                   ? booking.tourDate.toLocaleDateString()
                                   : 'TBD'}
                               </span>
-                              <span>${booking.totalPrice}</span>
+                              <span className="font-bold text-slate-900">${booking.totalPrice}</span>
                             </div>
                           </div>
                         ))
                       ) : (
                         <div className="text-center py-8">
-                          <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-500">No bookings yet</p>
+                          <Users className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                          <p className="text-slate-500 font-medium text-sm">No bookings yet</p>
                         </div>
                       )}
                     </div>
@@ -829,36 +823,36 @@ export const AgencyDashboard: React.FC = () => {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6 }}
-                    className="bg-white rounded-lg shadow p-6"
+                    className="bg-white rounded-2xl shadow-xs border border-slate-100 p-6"
                   >
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+                    <h3 className="text-base font-extrabold text-slate-900 mb-4 tracking-tight">Quick Actions</h3>
                     <div className="space-y-3">
                       <button
                         onClick={handleCreateTour}
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4 py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-500/20 hover:shadow-lg flex items-center justify-center space-x-2"
                       >
-                        <Plus className="h-5 w-5" />
+                        <Plus className="h-4 w-4" />
                         <span>Add New Tour</span>
                       </button>
                       <button
                         onClick={() => setActiveTab('bookings')}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-4 py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg flex items-center justify-center space-x-2"
                       >
-                        <Calendar className="h-5 w-5" />
+                        <Calendar className="h-4 w-4" />
                         <span>View Bookings</span>
                       </button>
                       <button
                         onClick={() => setActiveTab('completed')}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 hover:shadow-lg flex items-center justify-center space-x-2"
                       >
-                        <CheckCircle className="h-5 w-5" />
+                        <CheckCircle className="h-4 w-4" />
                         <span>View Completed Tours</span>
                       </button>
                       <button
                         onClick={() => setActiveTab('analytics')}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white px-4 py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-purple-500/20 hover:shadow-lg flex items-center justify-center space-x-2"
                       >
-                        <TrendingUp className="h-5 w-5" />
+                        <TrendingUp className="h-4 w-4" />
                         <span>View Analytics</span>
                       </button>
                     </div>
@@ -869,9 +863,9 @@ export const AgencyDashboard: React.FC = () => {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="bg-white rounded-lg shadow p-6"
+                    className="bg-white rounded-2xl shadow-xs border border-slate-100 p-6"
                   >
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Bookings</h3>
+                    <h3 className="text-base font-extrabold text-slate-900 mb-4 tracking-tight">Monthly Bookings</h3>
                     <div className="h-64">
                       <Bar data={chartData} options={{ 
                         responsive: true, 
@@ -895,13 +889,16 @@ export const AgencyDashboard: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6 }}
-              className="bg-white rounded-lg shadow"
+              className="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden"
             >
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Manage Tours</h3>
+              <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Manage Tours</h3>
+                  <p className="text-xs text-slate-500 font-medium">Create, modify, and track your active tour packages</p>
+                </div>
                 <button
                   onClick={handleCreateTour}
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center space-x-2"
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 hover:shadow-lg transition-all flex items-center space-x-2"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Tour</span>
@@ -911,47 +908,52 @@ export const AgencyDashboard: React.FC = () => {
                 {tours.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {tours.map((tour) => (
-                      <div key={tour.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div key={tour.id} className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all bg-white flex flex-col">
                         <div
-                          className="h-32 bg-cover bg-center"
-                          style={{ backgroundImage: `url(${tour.images?.[0] || 'https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop'})` }}
-                        />
-                        <div className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-gray-900 flex-1">{tour.title}</h4>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${tour.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          className="h-40 bg-cover bg-center relative"
+                          style={{ backgroundImage: `url(${tour.images?.[0] || tour.image || 'https://images.pexels.com/photos/2356045/pexels-photo-2356045.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop'})` }}
+                        >
+                          <div className="absolute top-3 right-3">
+                            <span className={`px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-full shadow-xs backdrop-blur-xs border ${
+                              tour.available ? 'bg-emerald-500/90 text-white border-emerald-400' : 'bg-rose-500/90 text-white border-rose-400'
+                            }`}>
                               {tour.available ? 'Active' : 'Inactive'}
                             </span>
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-4">
-                            <div>Price: ${tour.price}</div>
-                            <div>Rating: {tour.rating || 'N/A'}</div>
-                            <div>Duration: {tour.duration}d</div>
-                            <div>Max: {tour.maxParticipants}</div>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="font-extrabold text-slate-900 text-base mb-2 line-clamp-1">{tour.title}</h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs font-medium text-slate-600 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                              <div><span className="text-slate-400 font-bold uppercase text-[10px]">Price:</span> <span className="font-bold text-slate-900">${tour.price}</span></div>
+                              <div><span className="text-slate-400 font-bold uppercase text-[10px]">Rating:</span> <span className="font-bold text-slate-900">{tour.rating || 'N/A'}</span></div>
+                              <div><span className="text-slate-400 font-bold uppercase text-[10px]">Duration:</span> <span className="font-bold text-slate-900">{tour.duration}d</span></div>
+                              <div><span className="text-slate-400 font-bold uppercase text-[10px]">Max:</span> <span className="font-bold text-slate-900">{tour.maxParticipants}</span></div>
+                            </div>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 pt-2 border-t border-slate-100">
                             <button
                               onClick={() => handleEditTour(tour)}
-                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors flex items-center justify-center space-x-1"
+                              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1"
                             >
-                              <Edit className="h-3 w-3" />
+                              <Edit className="h-3.5 w-3.5" />
                               <span>Edit</span>
                             </button>
                             <button
                               onClick={() => handleToggleAvailability(tour)}
-                              className={`px-3 py-2 rounded text-xs font-medium transition-colors ${
+                              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
                                 tour.available
-                                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                                  : 'bg-green-600 hover:bg-green-700 text-white'
+                                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200/80'
+                                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200/80'
                               }`}
                             >
                               {tour.available ? 'Disable' : 'Enable'}
                             </button>
                             <button
                               onClick={() => handleDeleteTour(tour.id, tour.title)}
-                              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-xs font-medium transition-colors"
+                              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/70 px-3 py-2 rounded-xl text-xs font-bold transition-all"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </div>
@@ -960,14 +962,14 @@ export const AgencyDashboard: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No tours yet</h3>
-                    <p className="text-gray-500 mb-6">Create your first tour to start accepting bookings</p>
+                    <Package className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-extrabold text-slate-900 mb-1">No tours yet</h3>
+                    <p className="text-slate-500 text-xs mb-6">Create your first tour to start accepting bookings</p>
                     <button
                       onClick={handleCreateTour}
-                      className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2 mx-auto"
+                      className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-6 py-3 rounded-xl font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 hover:shadow-lg transition-all flex items-center space-x-2 mx-auto"
                     >
-                      <Plus className="h-5 w-5" />
+                      <Plus className="h-4 w-4" />
                       <span>Create Your First Tour</span>
                     </button>
                   </div>
@@ -983,23 +985,26 @@ export const AgencyDashboard: React.FC = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Manage Bookings</h1>
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Manage Bookings</h1>
+                  <p className="text-xs text-slate-500 font-medium">Review customer reservations and process requests</p>
+                </div>
+                <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
                       type="text" 
                       placeholder="Search bookings..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                      className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all shadow-xs"
                     />
                   </div>
                   <select 
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="py-2 px-3 border rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                    className="py-2.5 px-4 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all shadow-xs cursor-pointer"
                   >
                     <option value="all">All Statuses</option>
                     <option value="pending">Pending</option>
@@ -1009,21 +1014,21 @@ export const AgencyDashboard: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+              <div className="bg-white shadow-xs rounded-2xl overflow-hidden border border-slate-200/80">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-slate-100">
+                    <thead className="bg-slate-50/80 border-b border-slate-200/80">
                       <tr>
-                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
-                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
-                        <th className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th className="p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th className="p-4 text-left text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Tour</th>
+                        <th className="p-4 text-left text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Customer</th>
+                        <th className="p-4 text-left text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Date</th>
+                        <th className="p-4 text-left text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Participants</th>
+                        <th className="p-4 text-left text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th className="p-4 text-right text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Amount</th>
+                        <th className="p-4 text-right text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-slate-100">
                       <AnimatePresence>
                         {filteredBookings.length > 0 ? (
                           filteredBookings.map((booking) => (
@@ -1033,26 +1038,26 @@ export const AgencyDashboard: React.FC = () => {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
-                              className="hover:bg-gray-50 transition-colors"
+                              className="hover:bg-slate-50/60 transition-colors"
                             >
-                              <td className="p-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              <td className="p-4 whitespace-nowrap text-xs font-bold text-slate-900">
                                 {booking.tourName}
                               </td>
-                              <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="p-4 whitespace-nowrap text-xs font-medium text-slate-600">
                                 {booking.customerName || 'Customer'}
                               </td>
-                              <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="p-4 whitespace-nowrap text-xs font-medium text-slate-500">
                                 {booking.tourDate ? booking.tourDate.toLocaleDateString() : 'N/A'}
                               </td>
-                              <td className="p-4 whitespace-nowrap text-sm text-gray-500">
+                              <td className="p-4 whitespace-nowrap text-xs font-bold text-slate-800">
                                 {booking.participants}
                               </td>
                               <td className="p-4 whitespace-nowrap">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
+                                <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-full border ${getStatusColor(booking.status)}`}>
                                   {booking.status}
                                 </span>
                               </td>
-                              <td className="p-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                              <td className="p-4 whitespace-nowrap text-xs font-extrabold text-slate-900 text-right">
                                 ${booking.totalPrice}
                               </td>
                               <td className="p-4 whitespace-nowrap text-right relative">
@@ -1063,9 +1068,9 @@ export const AgencyDashboard: React.FC = () => {
                         ) : (
                           <tr>
                             <td colSpan={7} className="text-center py-12">
-                              <Info size={32} className="mx-auto text-gray-400" />
-                              <p className="mt-4 text-gray-600">No bookings found.</p>
-                              <p className="text-sm text-gray-500">Try adjusting your search or filters.</p>
+                              <Info size={32} className="mx-auto text-slate-300" />
+                              <p className="mt-3 text-slate-700 font-extrabold text-sm">No bookings found.</p>
+                              <p className="text-xs text-slate-500 font-medium">Try adjusting your search or status filters.</p>
                             </td>
                           </tr>
                         )}
@@ -1254,6 +1259,11 @@ export const AgencyDashboard: React.FC = () => {
           setSelectedBookingForUpdate(null);
         }}
         booking={selectedBookingForUpdate}
+      />
+
+      <ConfirmModal
+        {...confirmModalConfig}
+        onClose={() => setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))}
       />
       </div>
     </DashboardLayout>

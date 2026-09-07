@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { db } from '../../config/firebase';
 import { doc, deleteDoc, updateDoc, Timestamp, query, collection, where, getDocs, addDoc, serverTimestamp, getDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
+import { ConfirmModal, ConfirmModalConfig } from '../../components/Modals/ConfirmModal';
 import { Booking, Review, RefundRequest } from '../../types';
 
 // Add this new type for bookings with review status
@@ -49,6 +50,12 @@ export const TouristDashboard: React.FC = () => {
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<Booking | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [confirmModalConfig, setConfirmModalConfig] = useState<ConfirmModalConfig>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
   
   // Use ref to track previous booking states for notifications
   const previousBookingsRef = useRef<Map<string, Booking>>(new Map());
@@ -385,16 +392,24 @@ export const TouristDashboard: React.FC = () => {
     setShowReviewModal(true);
   };
 
-  const handleDeleteReview = async (review: Review) => {
-    if (!confirm('Are you sure you want to delete this review?')) return;
-    
-    try {
-      await deleteDoc(doc(db, 'reviews', review.id));
-      toast.success('Review deleted successfully');
-    } catch (error) {
-      console.error('Error deleting review:', error);
-      toast.error('Failed to delete review');
-    }
+  const handleDeleteReview = (review: Review) => {
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Delete Review',
+      message: 'Are you sure you want to delete this review? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Review',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'reviews', review.id));
+          toast.success('Review deleted successfully');
+        } catch (error) {
+          console.error('Error deleting review:', error);
+          toast.error('Failed to delete review');
+        }
+      }
+    });
   };
 
   // Cancel booking - show refund request form if payment was made
@@ -432,27 +447,29 @@ export const TouristDashboard: React.FC = () => {
       return;
     }
 
-    // If no payment, just cancel directly
-    const confirmMessage = `Are you sure you want to cancel "${booking.tourName}"?\n\n` +
-      `Total Amount: $${booking.totalPrice}\n` +
-      `\nThis action cannot be undone.`;
-
-    if (!confirm(confirmMessage)) return;
-
-    try {
-      // Update booking status to cancelled (no payment, so no refund needed)
-      await updateDoc(doc(db, 'bookings', booking.id), {
-        status: 'cancelled',
-        cancelledAt: Timestamp.now(),
-        cancelledBy: currentUser?.id,
-        updatedAt: Timestamp.now()
-      });
-
-      toast.success('Booking cancelled successfully');
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-      toast.error('Failed to cancel booking. Please try again or contact support.');
-    }
+    // If no payment, prompt with modern modal
+    setConfirmModalConfig({
+      isOpen: true,
+      title: 'Cancel Booking',
+      message: `Are you sure you want to cancel "${booking.tourName}"? Total Amount: ETB ${booking.totalPrice}.`,
+      type: 'warning',
+      confirmText: 'Cancel Booking',
+      cancelText: 'Keep Booking',
+      onConfirm: async () => {
+        try {
+          await updateDoc(doc(db, 'bookings', booking.id), {
+            status: 'cancelled',
+            cancelledAt: Timestamp.now(),
+            cancelledBy: currentUser?.id,
+            updatedAt: Timestamp.now()
+          });
+          toast.success('Booking cancelled successfully');
+        } catch (error) {
+          console.error('Error cancelling booking:', error);
+          toast.error('Failed to cancel booking. Please try again or contact support.');
+        }
+      }
+    });
   };
 
   // Process refund for cancelled booking
@@ -1519,6 +1536,11 @@ export const TouristDashboard: React.FC = () => {
           isReviewed={reviews.some(r => r.bookingId === selectedBookingForDetails?.id)}
         />
       )}
+
+      <ConfirmModal
+        {...confirmModalConfig}
+        onClose={() => setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };
