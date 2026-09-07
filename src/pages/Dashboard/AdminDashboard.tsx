@@ -33,6 +33,7 @@ interface Review {
   rating: number;
   comment: string;
   createdAt: any;
+  createdAtMs?: number;
   verified: boolean;
   agencyId: string;
   bookingId: string;
@@ -59,6 +60,8 @@ export const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
+  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '12m' | 'all'>('30d');
+  const currentMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   const [users, setUsers] = useState<any[]>([]);
   const [tours, setTours] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -191,51 +194,106 @@ export const AdminDashboard: React.FC = () => {
     };
   }, []);
 
+  // Time range calculation & cutoffs
+  const getCutoffMs = (range: '7d' | '30d' | '12m' | 'all') => {
+    const now = Date.now();
+    let days = 30;
+    if (range === '7d') days = 7;
+    if (range === '30d') days = 30;
+    if (range === '12m') days = 365;
+    if (range === 'all') days = 3650;
+    
+    const currentCutoff = now - (days * 24 * 60 * 60 * 1000);
+    const prevCutoff = currentCutoff - (days * 24 * 60 * 60 * 1000);
+    return { currentCutoff, prevCutoff };
+  };
+
+  const { currentCutoff, prevCutoff } = getCutoffMs(timeRange);
+
+  const calcGrowth = (curr: number, prev: number): string => {
+    if (prev === 0) {
+      if (curr === 0) return '0.0%';
+      return '+100.0%';
+    }
+    const pct = ((curr - prev) / prev) * 100;
+    const sign = pct >= 0 ? '+' : '';
+    return `${sign}${pct.toFixed(1)}%`;
+  };
+
+  // Filter items by selected time range for period stats
+  const periodUsers = users.filter(u => timeRange === 'all' || !u.createdAtMs || u.createdAtMs >= currentCutoff);
+  const prevUsers = users.filter(u => u.createdAtMs && u.createdAtMs >= prevCutoff && u.createdAtMs < currentCutoff);
+
+  const periodTours = tours.filter(t => timeRange === 'all' || !t.createdAtMs || t.createdAtMs >= currentCutoff);
+  const prevTours = tours.filter(t => t.createdAtMs && t.createdAtMs >= prevCutoff && t.createdAtMs < currentCutoff);
+
+  const periodBookings = bookings.filter(b => timeRange === 'all' || !b.createdAtMs || b.createdAtMs >= currentCutoff);
+  const prevBookings = bookings.filter(b => b.createdAtMs && b.createdAtMs >= prevCutoff && b.createdAtMs < currentCutoff);
+
+  const periodPayments = payments.filter(p => timeRange === 'all' || !p.createdAtMs || p.createdAtMs >= currentCutoff);
+
+  const periodReviews = reviews.filter(r => !r.createdAtMs || r.createdAtMs >= currentCutoff);
+
   // Statistics calculation
   const userStats = {
-    total: users.length,
-    tourists: users.filter(u => u.role === 'tourist').length,
-    agencies: users.filter(u => u.role === 'agency').length,
-    cashiers: users.filter(u => u.role === 'cashier').length,
-    active: users.filter(u => u.status === 'active').length,
-    inactive: users.filter(u => u.status === 'inactive').length
+    total: periodUsers.length,
+    allTimeTotal: users.length,
+    tourists: periodUsers.filter(u => u.role === 'tourist').length,
+    agencies: periodUsers.filter(u => u.role === 'agency').length,
+    cashiers: periodUsers.filter(u => u.role === 'cashier').length,
+    active: periodUsers.filter(u => u.status === 'active').length,
+    inactive: periodUsers.filter(u => u.status === 'inactive').length
   };
 
   const tourStats = {
-    total: tours.length,
-    active: tours.filter(t => t.status === 'active').length,
-    pending: tours.filter(t => t.status === 'pending').length,
-    flagged: tours.filter(t => t.status === 'flagged').length
+    total: periodTours.length,
+    allTimeTotal: tours.length,
+    active: periodTours.filter(t => t.status === 'active').length,
+    pending: periodTours.filter(t => t.status === 'pending').length,
+    flagged: periodTours.filter(t => t.status === 'flagged').length
   };
 
   const bookingStats = {
-    total: bookings.length,
-    confirmed: bookings.filter(b => b.status === 'confirmed').length,
-    pending: bookings.filter(b => b.status === 'pending').length,
-    cancelled: bookings.filter(b => b.status === 'cancelled').length,
-    revenue: bookings.reduce((sum, b) => sum + (b.status === 'confirmed' ? b.totalPrice || 0 : 0), 0)
+    total: periodBookings.length,
+    allTimeTotal: bookings.length,
+    confirmed: periodBookings.filter(b => b.status === 'confirmed').length,
+    pending: periodBookings.filter(b => b.status === 'pending').length,
+    cancelled: periodBookings.filter(b => b.status === 'cancelled').length,
+    revenue: periodBookings.reduce((sum, b) => sum + (b.status === 'confirmed' ? b.totalPrice || 0 : 0), 0),
+    prevRevenue: prevBookings.reduce((sum, b) => sum + (b.status === 'confirmed' ? b.totalPrice || 0 : 0), 0)
   };
 
   const paymentStats = {
-    total: payments.length,
-    successful: payments.filter(p => p.status === 'successful').length,
-    failed: payments.filter(p => p.status === 'failed').length,
-    totalRevenue: payments.reduce((sum, p) => sum + (p.status === 'successful' ? p.amount || 0 : 0), 0)
+    total: periodPayments.length,
+    successful: periodPayments.filter(p => p.status === 'successful').length,
+    failed: periodPayments.filter(p => p.status === 'failed').length,
+    totalRevenue: periodPayments.reduce((sum, p) => sum + (p.status === 'successful' ? p.amount || 0 : 0), 0)
   };
 
   const reviewStats = {
-    total: reviews.length,
-    verified: reviews.filter(r => r.verified).length,
-    pending: reviews.filter(r => !r.verified).length,
-    averageRating: reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : '0.0'
+    total: periodReviews.length,
+    verified: periodReviews.filter(r => r.verified).length,
+    pending: periodReviews.filter(r => !r.verified).length,
+    averageRating: periodReviews.length > 0 ? (periodReviews.reduce((sum, r) => sum + r.rating, 0) / periodReviews.length).toFixed(1) : '0.0'
   };
 
+  const userGrowth = calcGrowth(periodUsers.length, prevUsers.length);
+  const agencyGrowth = calcGrowth(userStats.agencies, prevUsers.filter(u => u.role === 'agency').length);
+  const tourGrowth = calcGrowth(periodTours.length, prevTours.length);
+  const revenueGrowth = calcGrowth(bookingStats.revenue, bookingStats.prevRevenue);
+
   const stats = [
-    { label: 'Total Users', value: userStats.total.toString(), icon: Users, color: 'bg-blue-500', change: '+18.4%' },
-    { label: 'Active Agencies', value: userStats.agencies.toString(), icon: Building, color: 'bg-emerald-500', change: '+5.2%' },
-    { label: 'Total Tours', value: tourStats.total.toString(), icon: Package, color: 'bg-amber-500', change: '+18.0%' },
-    { label: 'Monthly Revenue', value: `ETB ${bookingStats.revenue.toLocaleString()}`, icon: TrendingUp, color: 'bg-purple-500', change: '+24.6%' },
-    { label: 'Customer Reviews', value: reviewStats.total.toString(), icon: MessageSquare, color: 'bg-indigo-500', change: '4.92/5.0' }
+    { label: 'Total Users', value: userStats.total.toString(), icon: Users, color: 'bg-blue-500', change: userGrowth },
+    { label: 'Active Agencies', value: userStats.agencies.toString(), icon: Building, color: 'bg-emerald-500', change: agencyGrowth },
+    { label: 'Total Tours', value: tourStats.total.toString(), icon: Package, color: 'bg-amber-500', change: tourGrowth },
+    { 
+      label: timeRange === '7d' ? '7-Day Revenue' : timeRange === '12m' ? 'Annual Revenue' : timeRange === 'all' ? 'All-Time Revenue' : 'Monthly Revenue', 
+      value: `ETB ${bookingStats.revenue.toLocaleString()}`, 
+      icon: TrendingUp, 
+      color: 'bg-purple-500', 
+      change: revenueGrowth 
+    },
+    { label: 'Customer Reviews', value: reviewStats.total.toString(), icon: MessageSquare, color: 'bg-indigo-500', change: `${reviewStats.averageRating}/5.0` }
   ];
 
   const getAgencyName = async (agencyId: string): Promise<string> => {
@@ -262,6 +320,7 @@ export const AdminDashboard: React.FC = () => {
       const docs = snapshotDocs || (await getDocs(collection(db, 'reviews'))).docs;
       const reviewsData = docs.map(doc => ({
         id: doc.id,
+        createdAtMs: getTimestampMs(doc.data().createdAt),
         ...doc.data()
       })) as Review[];
 
@@ -1010,10 +1069,59 @@ export const AdminDashboard: React.FC = () => {
           
           {/* Header Action Buttons & Notifications */}
           <div className="flex items-center gap-3 self-start md:self-auto">
-            <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/60 text-xs font-bold text-slate-600">
-              <button className="px-3 py-1.5 rounded-xl hover:text-slate-900 transition-colors">7D</button>
-              <button className="px-3 py-1.5 rounded-xl bg-white text-purple-700 shadow-2xs font-extrabold">30D (Sep 2026)</button>
-              <button className="px-3 py-1.5 rounded-xl hover:text-slate-900 transition-colors">12M</button>
+            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/60 text-xs font-bold text-slate-600 flex-wrap gap-0.5">
+              <button 
+                onClick={() => {
+                  setTimeRange('7d');
+                  toast.success('Filtered data for Last 7 Days');
+                }}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  timeRange === '7d' 
+                    ? 'bg-white text-purple-700 shadow-2xs font-extrabold' 
+                    : 'hover:text-slate-900 text-slate-600'
+                }`}
+              >
+                7D
+              </button>
+              <button 
+                onClick={() => {
+                  setTimeRange('30d');
+                  toast.success(`Filtered data for 30D (${currentMonthYear})`);
+                }}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  timeRange === '30d' 
+                    ? 'bg-white text-purple-700 shadow-2xs font-extrabold' 
+                    : 'hover:text-slate-900 text-slate-600'
+                }`}
+              >
+                30D ({currentMonthYear})
+              </button>
+              <button 
+                onClick={() => {
+                  setTimeRange('12m');
+                  toast.success('Filtered data for Last 12 Months');
+                }}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  timeRange === '12m' 
+                    ? 'bg-white text-purple-700 shadow-2xs font-extrabold' 
+                    : 'hover:text-slate-900 text-slate-600'
+                }`}
+              >
+                12M
+              </button>
+              <button 
+                onClick={() => {
+                  setTimeRange('all');
+                  toast.success('Showing All-Time Data');
+                }}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  timeRange === 'all' 
+                    ? 'bg-white text-purple-700 shadow-2xs font-extrabold' 
+                    : 'hover:text-slate-900 text-slate-600'
+                }`}
+              >
+                All
+              </button>
             </div>
 
             {/* Notification Bell */}
