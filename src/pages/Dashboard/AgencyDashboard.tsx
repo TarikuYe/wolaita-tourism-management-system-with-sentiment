@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Bar, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -544,100 +545,139 @@ export const AgencyDashboard: React.FC = () => {
     }
   };
 
-  // Actions Menu Component for Bookings - Fixed and tested version
+  // Actions Menu Component for Bookings - Fixed with React Portal & Fixed Positioning
   const ActionsMenu: React.FC<{ booking: Booking }> = ({ booking }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [coords, setCoords] = useState<{ top: number; right: number; showAbove: boolean } | null>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
 
-    // Close menu when clicking outside
+    const updatePosition = () => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const showAbove = spaceBelow < 220 && rect.top > 220;
+
+        setCoords({
+          top: showAbove ? rect.top - 4 : rect.bottom + 4,
+          right: window.innerWidth - rect.right,
+          showAbove,
+        });
+      }
+    };
+
+    const handleMenuToggle = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isOpen) {
+        updatePosition();
+      }
+      setIsOpen((prev) => !prev);
+    };
+
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        const target = event.target as HTMLElement;
-        if (!target.closest('.actions-menu')) {
+        const target = event.target as Node;
+        if (
+          buttonRef.current && !buttonRef.current.contains(target) &&
+          menuRef.current && !menuRef.current.contains(target)
+        ) {
+          setIsOpen(false);
+        }
+      };
+
+      const handleScrollOrResize = () => {
+        if (isOpen) {
           setIsOpen(false);
         }
       };
 
       if (isOpen) {
         document.addEventListener('mousedown', handleClickOutside);
+        window.addEventListener('scroll', handleScrollOrResize, true);
+        window.addEventListener('resize', handleScrollOrResize);
       }
 
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScrollOrResize, true);
+        window.removeEventListener('resize', handleScrollOrResize);
       };
     }, [isOpen]);
 
     const handleAction = (action: () => void) => {
-      console.log('Action triggered for booking:', booking.id);
       action();
       setIsOpen(false);
     };
 
-    const handleMenuToggle = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setIsOpen(!isOpen);
-    };
-
     return (
-      <div className="relative actions-menu">
-        <button 
+      <div className="relative inline-block actions-menu">
+        <button
+          ref={buttonRef}
           onClick={handleMenuToggle}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors border border-gray-300"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          title="Actions"
         >
           <MoreVertical size={18} />
         </button>
-        
-        <AnimatePresence>
-          {isOpen && (
+
+        {isOpen && coords && createPortal(
+          <AnimatePresence>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              ref={menuRef}
+              initial={{ opacity: 0, scale: 0.95, y: coords.showAbove ? 10 : -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+              exit={{ opacity: 0, scale: 0.95, y: coords.showAbove ? 10 : -10 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                position: 'fixed',
+                top: coords.showAbove ? undefined : `${coords.top}px`,
+                bottom: coords.showAbove ? `${window.innerHeight - coords.top}px` : undefined,
+                right: `${coords.right}px`,
+                zIndex: 99999,
+              }}
+              className="w-48 bg-white rounded-md shadow-2xl border border-gray-200 py-1 text-left"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="py-1">
-                {booking.status === 'pending' && (
-                  <button
-                    onClick={() => handleAction(() => handleUpdateBookingStatus(booking.id, 'confirmed'))}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                  >
-                    <CheckCircle size={16} className="mr-2" /> Confirm
-                  </button>
-                )}
-                {booking.status === 'confirmed' && (
-                  <button
-                    onClick={() => handleAction(() => handleCompleteBooking(booking.id))}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                  >
-                    <CheckCircle size={16} className="mr-2" /> Mark as Completed
-                  </button>
-                )}
+              {booking.status === 'pending' && (
                 <button
-                  onClick={() => handleAction(() => handleViewBookingDetails(booking))}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                  >
-                  <Eye size={16} className="mr-2" /> View Details
-                </button>
-                <button
-                  onClick={() => handleAction(() => handleUpdateBooking(booking))}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  onClick={() => handleAction(() => handleUpdateBookingStatus(booking.id, 'confirmed'))}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center transition-colors"
                 >
-                  <Edit size={16} className="mr-2" /> Update Booking
+                  <CheckCircle size={16} className="mr-2 text-green-600" /> Confirm
                 </button>
+              )}
+              {booking.status === 'confirmed' && (
                 <button
-                  onClick={() => {
-                    console.log('Delete button clicked for booking:', booking.id);
-                    handleAction(() => handleDeleteBooking(booking.id));
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                  onClick={() => handleAction(() => handleCompleteBooking(booking.id))}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center transition-colors"
                 >
-                  <Trash2 size={16} className="mr-2" /> Delete Booking
+                  <CheckCircle size={16} className="mr-2 text-blue-600" /> Mark as Completed
                 </button>
-              </div>
+              )}
+              <button
+                onClick={() => handleAction(() => handleViewBookingDetails(booking))}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center transition-colors"
+              >
+                <Eye size={16} className="mr-2 text-amber-600" /> View Details
+              </button>
+              <button
+                onClick={() => handleAction(() => handleUpdateBooking(booking))}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center transition-colors"
+              >
+                <Edit size={16} className="mr-2 text-indigo-600" /> Update Booking
+              </button>
+              <button
+                onClick={() => {
+                  handleAction(() => handleDeleteBooking(booking.id));
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center transition-colors"
+              >
+                <Trash2 size={16} className="mr-2" /> Delete Booking
+              </button>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </AnimatePresence>,
+          document.body
+        )}
       </div>
     );
   };
