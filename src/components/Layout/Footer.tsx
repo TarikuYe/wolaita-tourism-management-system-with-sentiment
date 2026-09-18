@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Mountain, Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { FAQModal } from '../Modals/FAQModal';
 
 export const Footer: React.FC = () => {
   const { language } = useLanguage();
+  const { currentUser } = useAuth();
   const [isFAQModalOpen, setIsFAQModalOpen] = useState(false);
 
   const openFAQModal = () => {
@@ -116,16 +118,20 @@ export const Footer: React.FC = () => {
               {language === 'en' ? 'Quick Links' : 'ፈጣን ሊንኮች'}
             </h3>
             <ul className="space-y-2">
-              <li>
-                <Link to="/tours" className="text-gray-300 hover:text-amber-500 transition-colors">
-                  {language === 'en' ? 'Tours' : 'ጉዞዎች'}
-                </Link>
-              </li>
-              <li>
-                <Link to="/festivals" className="text-gray-300 hover:text-amber-500 transition-colors">
-                  {language === 'en' ? 'Festivals' : 'በዓላት'}
-                </Link>
-              </li>
+              {currentUser && (
+                <>
+                  <li>
+                    <Link to="/tours" className="text-gray-300 hover:text-amber-500 transition-colors">
+                      {language === 'en' ? 'Tours' : 'ጉዞዎች'}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/festivals" className="text-gray-300 hover:text-amber-500 transition-colors">
+                      {language === 'en' ? 'Festivals' : 'በዓላት'}
+                    </Link>
+                  </li>
+                </>
+              )}
               <li>
                 <Link to="/about" className="text-gray-300 hover:text-amber-500 transition-colors">
                   {language === 'en' ? 'About Us' : 'ስለ እኛ'}
