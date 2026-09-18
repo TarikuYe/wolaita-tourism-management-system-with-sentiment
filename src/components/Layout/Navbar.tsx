@@ -46,18 +46,22 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { to: '/', label: t('nav.home') },
-    ...(currentUser ? [{ to: '/tours', label: t('nav.tours'), isTours: true }] : []),
-    { to: '/festivals', label: t('nav.festivals') },
-    {
-      label: t('nav.culture'),
-      submenu: [
-        { to: '/culture/food-drinks', label: t('nav.foodDrinks'), icon: <Utensils className="w-4 h-4 mr-2" /> },
-        { to: '/culture/clothes', label: t('nav.clothes'), icon: <Shirt className="w-4 h-4 mr-2" /> },
-        { to: '/culture/dances', label: t('nav.dances'), icon: <PartyPopper className="w-4 h-4 mr-2" /> },
-        { to: '/culture/cottages', label: t('nav.cottages'), icon: <Home className="w-4 h-4 mr-2" /> },
-      ],
-    },
-    { to: '/hotel', label: t('nav.hotel') },
+    ...(currentUser
+      ? [
+          { to: '/tours', label: t('nav.tours'), isTours: true },
+          { to: '/festivals', label: t('nav.festivals') },
+          {
+            label: t('nav.culture'),
+            submenu: [
+              { to: '/culture/food-drinks', label: t('nav.foodDrinks'), icon: <Utensils className="w-4 h-4 mr-2" /> },
+              { to: '/culture/clothes', label: t('nav.clothes'), icon: <Shirt className="w-4 h-4 mr-2" /> },
+              { to: '/culture/dances', label: t('nav.dances'), icon: <PartyPopper className="w-4 h-4 mr-2" /> },
+              { to: '/culture/cottages', label: t('nav.cottages'), icon: <Home className="w-4 h-4 mr-2" /> },
+            ],
+          },
+          { to: '/hotel', label: t('nav.hotel') },
+        ]
+      : []),
     { to: '/about', label: t('nav.about') },
     { to: '/contact', label: t('nav.contact') },
   ];
