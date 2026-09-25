@@ -180,11 +180,11 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-amber-500" />
-                <span className="text-gray-300">+251 9XX XXX XXX</span>
+                <span className="text-gray-300">+251 919 421 910</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-amber-500" />
-                <span className="text-gray-300">info@wolaitatours.com</span>
+                <span className="text-gray-300">tarikunegesa19@gmail.com</span>
               </div>
             </div>
           </div>
@@ -192,7 +192,7 @@ export const Footer: React.FC = () => {
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-gray-300">
-            © 2024 {language === 'en' ? 'Wolaita Tours' : 'የወላይታ ጉዞዎች'}. 
+            © 2025 {language === 'en' ? 'Wolaita Tours' : 'የወላይታ ጉዞዎች'}. 
             {language === 'en' ? ' All rights reserved.' : ' ሁሉም መብቶች የተጠበቁ ናቸው።'}
           </p>
         </div>
